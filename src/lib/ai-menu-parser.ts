@@ -1,5 +1,5 @@
 // =============================================
-// Motor de Extracción de Menús con IA Multimodal (Google Gemini 1.5 Flash)
+// Motor de Extracción de Menús con IA Multimodal (Google Gemini API Cascade)
 // Soporte Multi-Carta, Menús Degustación y Bilingüismo (ES / EN)
 // =============================================
 
@@ -63,11 +63,11 @@ function normalizeAllergens(allergens: string[]): string[] {
 }
 
 export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise<ExtractedMenu> {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '').trim();
 
-  if (!apiKey || apiKey.trim() === '') {
+  if (!apiKey) {
     throw new Error(
-      'Falta la clave GEMINI_API_KEY en las variables de entorno. Puedes obtener una clave gratuita en https://aistudio.google.com e incluirla en tu archivo .env.local.'
+      'Falta la clave GEMINI_API_KEY en las variables de entorno. Puedes obtener una clave gratuita en https://aistudio.google.com e incluirla en tu archivo .env.local y Vercel.'
     );
   }
 
@@ -123,40 +123,61 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
 }
 `.trim();
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  // Lista de modelos candidate de Google Gemini para cascada automática contra HTTP 404
+  const candidateModels = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro',
+  ];
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: promptText },
+  let response: Response | null = null;
+  let lastErrorText = '';
+
+  for (const model of candidateModels) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
             {
-              inlineData: {
-                mimeType,
-                data: base64Data,
-              },
+              parts: [
+                { text: promptText },
+                {
+                  inlineData: {
+                    mimeType,
+                    data: base64Data,
+                  },
+                },
+              ],
             },
           ],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-      },
-    }),
-  });
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+          },
+        }),
+      });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    if (response.status === 400 && errorText.includes('PDF')) {
-      throw new Error('El archivo PDF está protegido por contraseña o tiene un formato no compatible.');
+      if (res.ok) {
+        response = res;
+        break;
+      }
+      lastErrorText = await res.text();
+      console.warn(`Gemini API Model ${model} returned HTTP ${res.status}:`, lastErrorText);
+    } catch (e) {
+      console.warn(`Error connecting to Gemini API model ${model}:`, e);
     }
-    throw new Error(`Error en el servicio de IA (HTTP ${response.status}). Comprueba que tu GEMINI_API_KEY esté activa.`);
+  }
+
+  if (!response || !response.ok) {
+    throw new Error(
+      `No se pudo conectar con el servicio de IA de Google Gemini. Comprueba que tu GEMINI_API_KEY esté activa en Google AI Studio. (Detalle: ${lastErrorText.slice(0, 120)})`
+    );
   }
 
   const jsonResponse = await response.json();
