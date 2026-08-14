@@ -233,16 +233,21 @@ export default function AdminPanel({
     }));
   };
 
-  const handleImportCategories = (importedCategories: MenuCategory[]) => {
-    if (!currentCollection) return;
-    setCurrentMenu((prev) => ({
-      ...prev,
-      menus: (prev.menus || []).map((m) =>
-        m.id === currentCollection.id
-          ? { ...m, categories: [...m.categories, ...importedCategories] }
-          : m
-      ),
-    }));
+  const handleImportCollections = (importedCollections: MenuCollection[]) => {
+    if (!importedCollections.length) return;
+    setCurrentMenu((prev) => {
+      const existing = prev.menus || [];
+      if (existing.length === 1 && (existing[0].categories || []).length === 0) {
+        return {
+          ...prev,
+          menus: importedCollections,
+        };
+      }
+      return {
+        ...prev,
+        menus: [...existing, ...importedCollections],
+      };
+    });
   };
 
   // ─── Handlers de Platos / Items ─────────────────────────────────────
@@ -994,7 +999,7 @@ export default function AdminPanel({
       <MenuImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        onImport={handleImportCategories}
+        onImport={handleImportCollections}
       />
     </section>
   );

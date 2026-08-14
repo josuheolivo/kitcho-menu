@@ -2,14 +2,14 @@
 
 import { useState, useRef } from 'react';
 import { parseMenuFileAction } from '@/lib/actions';
-import { ALLERGENS, MenuCategory, MenuItem, EMPTY_TRANSLATABLE, generateId } from '@/lib/types';
-import { ExtractedCategory, ExtractedProduct } from '@/lib/validations/import';
+import { ALLERGENS, MenuCollection, MenuCategory, MenuItem, EMPTY_TRANSLATABLE, generateId } from '@/lib/types';
+import { ExtractedCollection, ExtractedProduct } from '@/lib/validations/import';
 import { SparkIcon, CheckIcon } from './Icons';
 
 interface MenuImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (categories: MenuCategory[]) => void;
+  onImport: (collections: MenuCollection[]) => void;
 }
 
 export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImportModalProps) {
@@ -17,7 +17,7 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [extractedCategories, setExtractedCategories] = useState<ExtractedCategory[]>([]);
+  const [extractedCollections, setExtractedCollections] = useState<ExtractedCollection[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -80,7 +80,7 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
             return;
           }
 
-          setExtractedCategories(result.data.categories || []);
+          setExtractedCollections(result.data.collections || []);
           setStep('review');
         } catch (err: unknown) {
           console.error('Error al invocar Server Action de IA:', err);
@@ -100,100 +100,169 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
     }
   };
 
-  // Review & Edit Handlers
-  const handleUpdateCategoryName = (catIndex: number, newName: string) => {
-    setExtractedCategories((prev) =>
-      prev.map((cat, i) => (i === catIndex ? { ...cat, name: newName } : cat))
+  // Handlers for Collection / Category / Product editing
+  const handleUpdateCollectionName = (colIndex: number, field: 'name_es' | 'name_en', value: string) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => (i === colIndex ? { ...col, [field]: value } : col))
     );
   };
 
-  const handleRemoveCategory = (catIndex: number) => {
-    setExtractedCategories((prev) => prev.filter((_, i) => i !== catIndex));
+  const handleToggleFixedPrice = (colIndex: number) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => (i === colIndex ? { ...col, hasFixedPrice: !col.hasFixedPrice } : col))
+    );
   };
 
-  const handleAddCategory = () => {
-    setExtractedCategories((prev) => [
-      ...prev,
-      { name: 'Nueva Categoría', products: [] },
-    ]);
+  const handleUpdateFixedPrice = (colIndex: number, value: string) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => (i === colIndex ? { ...col, fixedPrice: value } : col))
+    );
+  };
+
+  const handleAddCategory = (colIndex: number) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) =>
+        i === colIndex
+          ? {
+              ...col,
+              categories: [...col.categories, { name_es: 'Nueva Categoría', name_en: '', products: [] }],
+            }
+          : col
+      )
+    );
+  };
+
+  const handleRemoveCategory = (colIndex: number, catIndex: number) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) =>
+        i === colIndex
+          ? { ...col, categories: col.categories.filter((_, cIdx) => cIdx !== catIndex) }
+          : col
+      )
+    );
+  };
+
+  const handleUpdateCategoryName = (
+    colIndex: number,
+    catIndex: number,
+    field: 'name_es' | 'name_en',
+    value: string
+  ) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => {
+        if (i !== colIndex) return col;
+        const newCats = col.categories.map((cat, cIdx) =>
+          cIdx === catIndex ? { ...cat, [field]: value } : cat
+        );
+        return { ...col, categories: newCats };
+      })
+    );
   };
 
   const handleUpdateProduct = (
+    colIndex: number,
     catIndex: number,
     prodIndex: number,
     field: keyof ExtractedProduct,
     value: string | string[]
   ) => {
-    setExtractedCategories((prev) =>
-      prev.map((cat, cIdx) => {
-        if (cIdx !== catIndex) return cat;
-        const newProducts = cat.products.map((prod, pIdx) => {
-          if (pIdx !== prodIndex) return prod;
-          return { ...prod, [field]: value };
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => {
+        if (i !== colIndex) return col;
+        const newCats = col.categories.map((cat, cIdx) => {
+          if (cIdx !== catIndex) return cat;
+          const newProds = cat.products.map((prod, pIdx) =>
+            pIdx === prodIndex ? { ...prod, [field]: value } : prod
+          );
+          return { ...cat, products: newProds };
         });
-        return { ...cat, products: newProducts };
+        return { ...col, categories: newCats };
       })
     );
   };
 
-  const handleToggleProductAllergen = (catIndex: number, prodIndex: number, allergenId: string) => {
-    setExtractedCategories((prev) =>
-      prev.map((cat, cIdx) => {
-        if (cIdx !== catIndex) return cat;
-        const newProducts = cat.products.map((prod, pIdx) => {
-          if (pIdx !== prodIndex) return prod;
-          const currentAllergens = prod.allergens || [];
-          const exists = currentAllergens.includes(allergenId);
-          const updated = exists
-            ? currentAllergens.filter((id) => id !== allergenId)
-            : [...currentAllergens, allergenId];
-          return { ...prod, allergens: updated };
+  const handleToggleProductAllergen = (
+    colIndex: number,
+    catIndex: number,
+    prodIndex: number,
+    allergenId: string
+  ) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => {
+        if (i !== colIndex) return col;
+        const newCats = col.categories.map((cat, cIdx) => {
+          if (cIdx !== catIndex) return cat;
+          const newProds = cat.products.map((prod, pIdx) => {
+            if (pIdx !== prodIndex) return prod;
+            const currentAllergens = prod.allergens || [];
+            const exists = currentAllergens.includes(allergenId);
+            const updated = exists
+              ? currentAllergens.filter((id) => id !== allergenId)
+              : [...currentAllergens, allergenId];
+            return { ...prod, allergens: updated };
+          });
+          return { ...cat, products: newProds };
         });
-        return { ...cat, products: newProducts };
+        return { ...col, categories: newCats };
       })
     );
   };
 
-  const handleRemoveProduct = (catIndex: number, prodIndex: number) => {
-    setExtractedCategories((prev) =>
-      prev.map((cat, cIdx) => {
-        if (cIdx !== catIndex) return cat;
-        return { ...cat, products: cat.products.filter((_, pIdx) => pIdx !== prodIndex) };
+  const handleRemoveProduct = (colIndex: number, catIndex: number, prodIndex: number) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => {
+        if (i !== colIndex) return col;
+        const newCats = col.categories.map((cat, cIdx) => {
+          if (cIdx !== catIndex) return cat;
+          return { ...cat, products: cat.products.filter((_, pIdx) => pIdx !== prodIndex) };
+        });
+        return { ...col, categories: newCats };
       })
     );
   };
 
-  const handleAddProduct = (catIndex: number) => {
-    setExtractedCategories((prev) =>
-      prev.map((cat, cIdx) => {
-        if (cIdx !== catIndex) return cat;
-        return {
-          ...cat,
-          products: [
-            ...cat.products,
-            { name: 'Nuevo Plato', description: '', price: '0.00', allergens: [] },
-          ],
-        };
+  const handleAddProduct = (colIndex: number, catIndex: number) => {
+    setExtractedCollections((prev) =>
+      prev.map((col, i) => {
+        if (i !== colIndex) return col;
+        const newCats = col.categories.map((cat, cIdx) => {
+          if (cIdx !== catIndex) return cat;
+          return {
+            ...cat,
+            products: [
+              ...cat.products,
+              { name_es: 'Nuevo Plato', name_en: '', description_es: '', description_en: '', price: '0.00', allergens: [] },
+            ],
+          };
+        });
+        return { ...col, categories: newCats };
       })
     );
   };
 
   const handleConfirmImport = () => {
-    const convertedCategories: MenuCategory[] = extractedCategories.map((cat) => ({
+    const convertedCollections: MenuCollection[] = extractedCollections.map((col) => ({
       id: generateId(),
-      name: { ...EMPTY_TRANSLATABLE, es: cat.name },
+      name: { ...EMPTY_TRANSLATABLE, es: col.name_es, en: col.name_en || '' },
       available: true,
-      items: cat.products.map((prod): MenuItem => ({
+      hasFixedPrice: col.hasFixedPrice,
+      fixedPrice: col.fixedPrice,
+      categories: col.categories.map((cat): MenuCategory => ({
         id: generateId(),
-        name: { ...EMPTY_TRANSLATABLE, es: prod.name },
-        description: { ...EMPTY_TRANSLATABLE, es: prod.description || '' },
-        price: String(prod.price || '0.00'),
-        allergens: prod.allergens || [],
+        name: { ...EMPTY_TRANSLATABLE, es: cat.name_es, en: cat.name_en || '' },
         available: true,
+        items: cat.products.map((prod): MenuItem => ({
+          id: generateId(),
+          name: { ...EMPTY_TRANSLATABLE, es: prod.name_es, en: prod.name_en || '' },
+          description: { ...EMPTY_TRANSLATABLE, es: prod.description_es || '', en: prod.description_en || '' },
+          price: String(prod.price || '0.00'),
+          allergens: prod.allergens || [],
+          available: true,
+        })),
       })),
     }));
 
-    onImport(convertedCategories);
+    onImport(convertedCollections);
     handleReset();
     onClose();
   };
@@ -202,7 +271,7 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
     setStep('upload');
     setFile(null);
     setError(null);
-    setExtractedCategories([]);
+    setExtractedCollections([]);
   };
 
   return (
@@ -219,7 +288,7 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
                 Importador Inteligente de Menús (IA)
               </h2>
               <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400">
-                Sube tu carta en PDF o foto para extraer automáticamente platos, precios y alérgenos.
+                Lector bilingüe (ES / EN) de PDFs y fotos con separación inteligente de cartas.
               </p>
             </div>
           </div>
@@ -316,153 +385,232 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
                 Analizando tu carta con IA Multimodal…
               </h3>
               <p className="text-sm text-[var(--text-secondary)] dark:text-slate-400 max-w-md mx-auto">
-                Estamos identificando categorías, platos, precios y los 14 alérgenos de la UE. Esto tomará solo unos segundos.
+                Filtrando español e inglés, detectando menús degustación, precios y los 14 alérgenos de la UE. Esto tomará solo unos segundos.
               </p>
             </div>
           )}
 
-          {/* STEP 3: INTERACTIVE REVISION TABLE / FORM */}
+          {/* STEP 3: INTERACTIVE REVISION FORM */}
           {step === 'review' && (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="flex items-center justify-between border-b border-[var(--border)] dark:border-slate-800 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-[var(--kitcho-charcoal)] dark:text-white">
-                    Revisa los datos detectados ({extractedCategories.reduce((acc, c) => acc + c.products.length, 0)} platos en {extractedCategories.length} categorías)
+                    Revisa los datos detectados ({extractedCollections.length} cartas extraídas)
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400">
-                    Puedes corregir cualquier texto, precio o etiqueta de alérgeno antes de importar.
+                    Se han separado automáticamente los textos en Español e Inglés y detectado precios y alérgenos.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddCategory}
-                  className="btn btn-outline btn-sm dark:!border-slate-700 dark:!text-white"
-                >
-                  + Nueva categoría
-                </button>
               </div>
 
-              {extractedCategories.length === 0 ? (
+              {extractedCollections.length === 0 ? (
                 <div className="py-12 text-center text-sm text-gray-500">
-                  No se detectaron categorías en la carta. Haz clic en &quot;+ Nueva categoría&quot; para agregar manualmente.
+                  No se detectaron datos en el documento.
                 </div>
               ) : (
-                <div className="space-y-8">
-                  {extractedCategories.map((category, catIndex) => (
+                <div className="space-y-10">
+                  {extractedCollections.map((col, colIndex) => (
                     <div
-                      key={catIndex}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 space-y-4"
+                      key={colIndex}
+                      className="rounded-2xl border-2 border-orange-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-5 space-y-5"
                     >
-                      {/* Category Header */}
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-xs font-bold uppercase text-[var(--kitcho-orange)]">Categoría:</span>
-                          <input
-                            type="text"
-                            value={category.name}
-                            onChange={(e) => handleUpdateCategoryName(catIndex, e.target.value)}
-                            className="input !min-h-9 !py-1 text-base font-bold w-64 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
-                            placeholder="Nombre de la categoría"
-                          />
-                          <span className="badge bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            {category.products.length} platos
-                          </span>
+                      {/* Collection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold uppercase text-[var(--kitcho-orange)]">Nombre del Menú:</span>
+                            <input
+                              type="text"
+                              value={col.name_es}
+                              onChange={(e) => handleUpdateCollectionName(colIndex, 'name_es', e.target.value)}
+                              className="input !min-h-9 !py-1 text-base font-bold w-64 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                              placeholder="Nombre en español"
+                            />
+                            <input
+                              type="text"
+                              value={col.name_en}
+                              onChange={(e) => handleUpdateCollectionName(colIndex, 'name_en', e.target.value)}
+                              className="input !min-h-9 !py-1 text-sm w-48 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                              placeholder="Name in English"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-3 pt-1">
+                            <label className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={col.hasFixedPrice}
+                                onChange={() => handleToggleFixedPrice(colIndex)}
+                                className="rounded"
+                              />
+                              <span>Menú de Precio Fijo Global (ej. Menú Degustación)</span>
+                            </label>
+                            {col.hasFixedPrice && (
+                              <input
+                                type="text"
+                                value={col.fixedPrice}
+                                onChange={(e) => handleUpdateFixedPrice(colIndex, e.target.value)}
+                                className="input !min-h-8 !py-1 text-xs font-bold w-24 text-center dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                                placeholder="28.00 €"
+                              />
+                            )}
+                          </div>
                         </div>
+
                         <button
                           type="button"
-                          onClick={() => handleRemoveCategory(catIndex)}
-                          className="text-red-500 hover:text-red-700 text-xs font-bold"
-                          title="Eliminar esta categoría"
+                          onClick={() => handleAddCategory(colIndex)}
+                          className="btn btn-outline btn-sm dark:!border-slate-700 dark:!text-white shrink-0"
                         >
-                          Eliminar categoría ✕
+                          + Añadir categoría a esta carta
                         </button>
                       </div>
 
-                      {/* Products List */}
-                      <div className="space-y-3">
-                        {category.products.map((product, prodIndex) => (
+                      {/* Categories List */}
+                      <div className="space-y-6">
+                        {col.categories.map((category, catIndex) => (
                           <div
-                            key={prodIndex}
-                            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-3 shadow-sm"
+                            key={catIndex}
+                            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4"
                           >
-                            <div className="grid gap-3 sm:grid-cols-[1fr_7rem_2.5rem]">
-                              <input
-                                type="text"
-                                value={product.name}
-                                onChange={(e) =>
-                                  handleUpdateProduct(catIndex, prodIndex, 'name', e.target.value)
-                                }
-                                className="input !min-h-9 !py-1 text-sm font-bold dark:!bg-slate-950 dark:!border-slate-700 dark:!text-white"
-                                placeholder="Nombre del plato"
-                              />
-                              <div className="relative">
+                            <div className="flex items-center justify-between gap-3 border-b pb-2 dark:border-slate-800">
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="text-xs font-bold text-gray-500">Categoría:</span>
                                 <input
                                   type="text"
-                                  value={product.price}
+                                  value={category.name_es}
                                   onChange={(e) =>
-                                    handleUpdateProduct(catIndex, prodIndex, 'price', e.target.value)
+                                    handleUpdateCategoryName(colIndex, catIndex, 'name_es', e.target.value)
                                   }
-                                  className="input !min-h-9 !py-1 text-right text-sm font-bold pr-6 dark:!bg-slate-950 dark:!border-slate-700 dark:!text-white"
-                                  placeholder="0.00"
+                                  className="input !min-h-8 !py-1 text-sm font-bold w-48 dark:!bg-slate-950 dark:!border-slate-700 dark:!text-white"
+                                  placeholder="Categoría (ES)"
                                 />
-                                <span className="absolute right-2 top-2 text-xs font-bold text-gray-500">€</span>
+                                <input
+                                  type="text"
+                                  value={category.name_en}
+                                  onChange={(e) =>
+                                    handleUpdateCategoryName(colIndex, catIndex, 'name_en', e.target.value)
+                                  }
+                                  className="input !min-h-8 !py-1 text-xs w-40 dark:!bg-slate-950 dark:!border-slate-700 dark:!text-white"
+                                  placeholder="Category (EN)"
+                                />
                               </div>
                               <button
                                 type="button"
-                                onClick={() => handleRemoveProduct(catIndex, prodIndex)}
-                                className="text-gray-400 hover:text-red-500 font-bold"
-                                title="Eliminar plato"
+                                onClick={() => handleRemoveCategory(colIndex, catIndex)}
+                                className="text-red-500 hover:text-red-700 text-xs font-bold"
                               >
-                                ✕
+                                Eliminar ✕
                               </button>
                             </div>
 
-                            <input
-                              type="text"
-                              value={product.description}
-                              onChange={(e) =>
-                                handleUpdateProduct(catIndex, prodIndex, 'description', e.target.value)
-                              }
-                              className="input !min-h-8 !py-1 text-xs text-gray-600 dark:text-slate-300 dark:!bg-slate-950 dark:!border-slate-700"
-                              placeholder="Descripción o ingredientes (opcional)"
-                            />
-
-                            {/* Allergen Badges Selector */}
-                            <div className="pt-1">
-                              <span className="text-[11px] font-bold text-gray-400 block mb-1">Alérgenos detectados:</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {ALLERGENS.map((allergen) => {
-                                  const isSelected = (product.allergens || []).includes(allergen.id);
-                                  return (
-                                    <button
-                                      key={allergen.id}
-                                      type="button"
-                                      onClick={() =>
-                                        handleToggleProductAllergen(catIndex, prodIndex, allergen.id)
+                            {/* Products List */}
+                            <div className="space-y-3">
+                              {category.products.map((product, prodIndex) => (
+                                <div
+                                  key={prodIndex}
+                                  className="rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/60 p-3 space-y-2"
+                                >
+                                  <div className="grid gap-2 sm:grid-cols-[1fr_1fr_6rem_2rem]">
+                                    <input
+                                      type="text"
+                                      value={product.name_es}
+                                      onChange={(e) =>
+                                        handleUpdateProduct(colIndex, catIndex, prodIndex, 'name_es', e.target.value)
                                       }
-                                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all ${
-                                        isSelected
-                                          ? 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
-                                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white border border-transparent'
-                                      }`}
+                                      className="input !min-h-8 !py-1 text-xs font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                                      placeholder="Nombre del plato (ES)"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={product.name_en}
+                                      onChange={(e) =>
+                                        handleUpdateProduct(colIndex, catIndex, prodIndex, 'name_en', e.target.value)
+                                      }
+                                      className="input !min-h-8 !py-1 text-xs dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                                      placeholder="Dish name (EN)"
+                                    />
+                                    <div className="relative">
+                                      <input
+                                        type="text"
+                                        value={product.price}
+                                        onChange={(e) =>
+                                          handleUpdateProduct(colIndex, catIndex, prodIndex, 'price', e.target.value)
+                                        }
+                                        className="input !min-h-8 !py-1 text-right text-xs font-bold pr-5 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                                        placeholder="0.00"
+                                      />
+                                      <span className="absolute right-1.5 top-1.5 text-[10px] font-bold text-gray-500">€</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveProduct(colIndex, catIndex, prodIndex)}
+                                      className="text-gray-400 hover:text-red-500 font-bold text-xs"
                                     >
-                                      <span>{allergen.icon}</span>
-                                      <span>{allergen.name}</span>
+                                      ✕
                                     </button>
-                                  );
-                                })}
-                              </div>
+                                  </div>
+
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <input
+                                      type="text"
+                                      value={product.description_es}
+                                      onChange={(e) =>
+                                        handleUpdateProduct(colIndex, catIndex, prodIndex, 'description_es', e.target.value)
+                                      }
+                                      className="input !min-h-7 !py-1 text-[11px] text-gray-600 dark:text-slate-300 dark:!bg-slate-900 dark:!border-slate-700"
+                                      placeholder="Descripción (ES)"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={product.description_en}
+                                      onChange={(e) =>
+                                        handleUpdateProduct(colIndex, catIndex, prodIndex, 'description_en', e.target.value)
+                                      }
+                                      className="input !min-h-7 !py-1 text-[11px] text-gray-600 dark:text-slate-300 dark:!bg-slate-900 dark:!border-slate-700"
+                                      placeholder="Description (EN)"
+                                    />
+                                  </div>
+
+                                  {/* Allergen Badges Selector */}
+                                  <div className="pt-1">
+                                    <div className="flex flex-wrap gap-1">
+                                      {ALLERGENS.map((allergen) => {
+                                        const isSelected = (product.allergens || []).includes(allergen.id);
+                                        return (
+                                          <button
+                                            key={allergen.id}
+                                            type="button"
+                                            onClick={() =>
+                                              handleToggleProductAllergen(colIndex, catIndex, prodIndex, allergen.id)
+                                            }
+                                            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold transition-all ${
+                                              isSelected
+                                                ? 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white border border-transparent'
+                                            }`}
+                                          >
+                                            <span>{allergen.icon}</span>
+                                            <span>{allergen.name}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+
+                              <button
+                                type="button"
+                                onClick={() => handleAddProduct(colIndex, catIndex)}
+                                className="btn btn-ghost btn-sm text-xs text-[var(--kitcho-orange-dark)] dark:text-orange-400"
+                              >
+                                + Añadir plato a {category.name_es}
+                              </button>
                             </div>
                           </div>
                         ))}
-
-                        <button
-                          type="button"
-                          onClick={() => handleAddProduct(catIndex)}
-                          className="btn btn-ghost btn-sm text-xs text-[var(--kitcho-orange-dark)] dark:text-orange-400"
-                        >
-                          + Añadir plato a {category.name}
-                        </button>
                       </div>
                     </div>
                   ))}
@@ -482,7 +630,7 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
                   onClick={handleConfirmImport}
                   className="btn btn-primary btn-lg"
                 >
-                  <CheckIcon className="h-4 w-4" /> Confirmar e Importar a mi Carta
+                  <CheckIcon className="h-4 w-4" /> Confirmar e Importar {extractedCollections.length} Cartas
                 </button>
               </div>
             </div>

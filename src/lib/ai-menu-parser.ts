@@ -1,5 +1,6 @@
 // =============================================
 // Motor de Extracción de Menús con IA Multimodal (Google Gemini 1.5 Flash)
+// Soporte Multi-Carta, Menús Degustación y Bilingüismo (ES / EN)
 // =============================================
 
 import { ExtractedMenu, ExtractedMenuSchema } from './validations/import';
@@ -11,9 +12,12 @@ const ALLERGEN_ALIAS_MAP: Record<string, string> = {
   crustaceans: 'crustaceos',
   crustaceos: 'crustaceos',
   marisco: 'crustaceos',
+  prawns: 'crustaceos',
+  shrimp: 'crustaceos',
   eggs: 'huevos',
   huevos: 'huevos',
   huevo: 'huevos',
+  egg: 'huevos',
   fish: 'pescado',
   pescado: 'pescado',
   peanuts: 'cacahuetes',
@@ -21,13 +25,16 @@ const ALLERGEN_ALIAS_MAP: Record<string, string> = {
   mani: 'cacahuetes',
   soybeans: 'soja',
   soja: 'soja',
+  soy: 'soja',
   milk: 'lacteos',
   lacteos: 'lacteos',
   leche: 'lacteos',
   dairy: 'lacteos',
+  cheese: 'lacteos',
   nuts: 'frutos_cascara',
   frutos_cascara: 'frutos_cascara',
   frutossecos: 'frutos_cascara',
+  almonds: 'frutos_cascara',
   celery: 'apio',
   apio: 'apio',
   mustard: 'mostaza',
@@ -36,6 +43,7 @@ const ALLERGEN_ALIAS_MAP: Record<string, string> = {
   sesamo: 'sesamo',
   sulphites: 'sulfitos',
   sulfitos: 'sulfitos',
+  wine: 'sulfitos',
   vino: 'sulfitos',
   lupin: 'altramuces',
   altramuces: 'altramuces',
@@ -66,27 +74,48 @@ export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise
   const base64Data = buffer.toString('base64');
 
   const promptText = `
-Eres un sumiller y chef experto en gastronomía y gestión de cartas de restaurantes en España y Europa.
-Analiza detenidamente la carta/menú adjunto (imagen o PDF).
-Extrae absolutamente TODAS las categorías de comida/bebida y los platos/productos pertenecientes a cada categoría.
+Eres un chef, sumiller y gestor de cartas de restaurantes de alta gastronomía en España y Europa.
+Analiza detenidamente el documento adjunto (imagen o PDF de la carta del restaurante).
 
-Para cada producto extrae:
-- name: Nombre exacto del plato o bebida en español.
-- description: Descripción de ingredientes, modo de preparación o notas adicionales si aparecen en el documento (si no aparece descripción, pon "").
-- price: El precio del plato como número decimal o texto (ejemplo: "9.50", "12.00"). Si no tiene precio visible, pon "0.00".
-- allergens: Array de identificadores de alérgenos presentes o señalados con iconos/texto. Usa exclusivamente estos identificadores: ["gluten", "crustaceos", "huevos", "pescado", "cacahuetes", "soja", "lacteos", "frutos_cascara", "apio", "mostaza", "sesamo", "sulfitos", "altramuces", "moluscos"].
+INSTRUCCIONES CLAVE DE EXTRACCIÓN Y ESTRUCTURA:
 
-REGLA DE SALIDA: Responde ÚNICAMENTE con un JSON válido respetando estrictamente esta estructura:
+1. DETECCIÓN MULTI-CARTA / COLECCIONES DE MENÚ:
+   - Si el documento contiene varias cartas o secciones independientes (ej. "Carta Principal", "MENÚ DE TAPAS CLÁSICAS (28,00 €)", "MENÚ DE TAPAS DE MAR (39,00 €)", "VINOS Y BEBIDAS"), créalas como colecciones separadas en el array "collections".
+   - Para menús degustación o menús del día con precio fijo global (ej. "28,00 € por persona"), asigna "hasFixedPrice": true y "fixedPrice": "28.00".
+   - Si solo hay una carta general, crea una única colección llamada "Carta Principal" ("Main Menu").
+
+2. SEPARACIÓN BILINGÜE ESPAÑOL / INGLÉS (FILTRADO INTELIGENTE):
+   - Si los títulos, platos o descripciones están escritos en Español e Inglés separados por "/", "|", salto de línea o paréntesis (ejemplo: "RACIONES FRÍAS / COLD DISHES" o "Ensalada de burrata... / Burrata cheese salad..."):
+     - Extrae ÚNICAMENTE la parte en Español en "name_es" y "description_es".
+     - Asigna la parte traducida al Inglés en "name_en" y "description_en".
+   - Si el documento está solo en español, asigna la traducción automática al inglés si es evidente, o pon "name_en": "" y "description_en": "".
+
+3. PRECIOS Y ALÉRGENOS UE:
+   - Formatea los precios como texto limpio (ej. "18.00", "16.00", "20.50"). Si indica "S/M" o "Según Mercado", pon "price": "S/M".
+   - Identifica cualquier icono o texto de alérgenos y asígnalos usando EXCLUSIVAMENTE estos identificadores: ["gluten", "crustaceos", "huevos", "pescado", "cacahuetes", "soja", "lacteos", "frutos_cascara", "apio", "mostaza", "sesamo", "sulfitos", "altramuces", "moluscos"].
+
+REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando este esquema exacto:
 {
-  "categories": [
+  "collections": [
     {
-      "name": "Nombre de la categoría (ej. Entrantes, Carnes, Postres, Vinos)",
-      "products": [
+      "name_es": "Carta Principal",
+      "name_en": "Main Menu",
+      "hasFixedPrice": false,
+      "fixedPrice": "",
+      "categories": [
         {
-          "name": "Nombre del plato",
-          "description": "Descripción o ingredientes",
-          "price": "9.50",
-          "allergens": ["gluten", "lacteos"]
+          "name_es": "Raciones Frías",
+          "name_en": "Cold Dishes",
+          "products": [
+            {
+              "name_es": "Guacamole con frutas de temporada, gambitas y aceite de cilantro",
+              "name_en": "Guacamole with seasonal fruits, prawns and coriander oil",
+              "description_es": "Con gambitas y aceite de cilantro",
+              "description_en": "With prawns and coriander oil",
+              "price": "18.00",
+              "allergens": ["crustaceos"]
+            }
+          ]
         }
       ]
     }
@@ -150,13 +179,16 @@ REGLA DE SALIDA: Responde ÚNICAMENTE con un JSON válido respetando estrictamen
   }
 
   // Normalizar los identificadores de alérgenos devueltos por la IA
-  const normalizedCategories = validated.data.categories.map((cat) => ({
-    ...cat,
-    products: cat.products.map((prod) => ({
-      ...prod,
-      allergens: normalizeAllergens(prod.allergens),
+  const normalizedCollections = validated.data.collections.map((col) => ({
+    ...col,
+    categories: col.categories.map((cat) => ({
+      ...cat,
+      products: cat.products.map((prod) => ({
+        ...prod,
+        allergens: normalizeAllergens(prod.allergens),
+      })),
     })),
   }));
 
-  return { categories: normalizedCategories };
+  return { collections: normalizedCollections };
 }
