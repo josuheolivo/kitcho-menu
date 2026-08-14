@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MenuData, Translatable, ALLERGENS, ensureMenuStructure } from '@/lib/types';
+import { MenuData, Translatable, ALLERGENS, ensureMenuStructure, MenuCollection, MenuCategory, MenuItem } from '@/lib/types';
 import BrandMark from '@/components/BrandMark';
 import { GlobeIcon, SparkIcon } from '@/components/Icons';
 
@@ -28,11 +28,24 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
   const [lang, setLang] = useState<Language>('es');
   const [isDark, setIsDark] = useState<boolean>(menu.themeMode === 'dark');
 
-  // Multi-menu selector state
+  // Multi-menu active collections
   const activeMenus = (menu.menus || []).filter((m) => m.available !== false);
   const [selectedMenuId, setSelectedMenuId] = useState<string>(
     () => activeMenus[0]?.id || 'default-menu'
   );
+
+  // Floating modal state for viewing a specific category or fixed menu collection
+  const [activeModal, setActiveModal] = useState<{
+    type: 'collection' | 'category';
+    title: Translatable;
+    fixedPrice?: string;
+    hasFixedPrice?: boolean;
+    categories: {
+      id: string;
+      name: Translatable;
+      items: MenuItem[];
+    }[];
+  } | null>(null);
 
   useEffect(() => {
     const browserLang = navigator.language.split('-')[0] as Language;
@@ -49,14 +62,14 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
   const currentCollection =
     activeMenus.find((m) => m.id === selectedMenuId) || activeMenus[0];
 
-  // Filter visible categories for the selected menu collection
+  // Get visible categories for current active collection
   const visibleCategories = (currentCollection?.categories || [])
     .filter((cat) => cat.available !== false)
-    .map((category) => ({
-      ...category,
-      visibleItems: category.items.filter((item) => t(item.name)),
+    .map((cat) => ({
+      ...cat,
+      visibleItems: cat.items.filter((item) => t(item.name)),
     }))
-    .filter((category) => category.visibleItems.length > 0);
+    .filter((cat) => cat.visibleItems.length > 0);
 
   const menuTitle = menu.restaurantName || restaurantName;
   const showLogo = menu.showLogo !== false;
@@ -121,7 +134,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
         </svg>
       </header>
 
-      {/* Navigation Bar (Idiomas + Theme Toggle + Multi-Menu Tabs) */}
+      {/* Navigation Bar (Idiomas + Dark Mode Switch + Collection Selector) */}
       <nav
         className={`sticky top-0 z-30 border-b backdrop-blur-xl transition-colors ${
           isDark
@@ -136,7 +149,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
               Idioma
             </span>
 
-            {/* Dark mode switch for client */}
+            {/* Dark mode switch */}
             <button
               type="button"
               onClick={() => setIsDark((prev) => !prev)}
@@ -177,7 +190,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
           </div>
         </div>
 
-        {/* Multi-menu Collection Selector Tabs (if more than 1 active menu exists) */}
+        {/* Multi-menu Collection Tabs (if > 1 active collection) */}
         {activeMenus.length > 1 && (
           <div className="border-t border-[var(--border)] dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-2">
             <div className="container flex justify-center gap-2 overflow-x-auto">
@@ -216,106 +229,238 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
         </div>
       )}
 
-      {/* Main Content */}
-      <main className="container py-10 sm:py-14">
-        {/* Banner de Precio Fijo Global (ej. Menú del Día / Degustación) */}
-        {currentCollection?.hasFixedPrice && currentCollection.fixedPrice && (
-          <div className="mx-auto max-w-3xl mb-8 rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-slate-900 p-5 text-center shadow-sm animate-fade-in">
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
-              Menú Completo Fijo
-            </p>
-            <p className="text-2xl sm:text-3xl font-extrabold text-amber-900 dark:text-amber-100">
-              {Number(currentCollection.fixedPrice.replace(',', '.')).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 ml-1.5 font-sans">/ persona</span>
-            </p>
-            <p className="text-xs text-amber-800 dark:text-slate-400 mt-1">
-              Precio global único para la selección completa de esta carta.
-            </p>
-          </div>
-        )}
-
+      {/* Main Content Hub */}
+      <main className="container py-8 sm:py-12">
         {visibleCategories.length === 0 ? (
           <EmptyState primaryColor={primaryColor} isDark={isDark} />
         ) : (
-          <div className="mx-auto max-w-3xl space-y-12 sm:space-y-16">
-            {visibleCategories.map((category, categoryIndex) => (
-              <section
-                key={category.id}
-                className="animate-slide-up"
-                style={{ animationDelay: `${categoryIndex * 0.07}s` }}
+          <div className="mx-auto max-w-3xl space-y-10">
+            {/* Banner de Precio Fijo Global si aplica */}
+            {currentCollection?.hasFixedPrice && currentCollection.fixedPrice && (
+              <div
+                onClick={() =>
+                  setActiveModal({
+                    type: 'collection',
+                    title: currentCollection.name,
+                    hasFixedPrice: true,
+                    fixedPrice: currentCollection.fixedPrice,
+                    categories: visibleCategories.map((c) => ({
+                      id: c.id,
+                      name: c.name,
+                      items: c.visibleItems,
+                    })),
+                  })
+                }
+                className="cursor-pointer rounded-2xl border border-amber-300 dark:border-amber-800 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 p-6 text-center shadow-md hover:scale-[1.01] transition-transform animate-fade-in"
               >
-                <div className="mb-5 flex items-center gap-4">
-                  <div>
-                    <p
-                      className="text-xs font-bold uppercase tracking-[.12em]"
-                      style={{ color: primaryColor }}
-                    >
-                      {String(categoryIndex + 1).padStart(2, '0')}
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-                      {t(category.name)}
-                    </h2>
-                  </div>
-                  <div
-                    className={`mt-6 h-px flex-1 ${
-                      isDark ? 'bg-slate-800' : 'bg-[var(--border)]'
-                    }`}
-                  />
-                  <span
-                    className="badge mt-6 text-white font-bold"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    {category.visibleItems.length}
-                  </span>
-                </div>
-
-                <div className="grid gap-3">
-                  {category.visibleItems.map((item) => (
-                    <MenuItemCard
-                      key={item.id}
-                      name={t(item.name)}
-                      description={t(item.description)}
-                      price={item.price}
-                      allergens={item.allergens}
-                      available={item.available !== false}
-                      primaryColor={primaryColor}
-                      isDark={isDark}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        {/* Leyenda Informativa de Alérgenos (Reglamento UE 1169/2011) */}
-        {visibleCategories.length > 0 && (
-          <div className="mx-auto max-w-3xl mt-12 pt-8 border-t border-[var(--border)] dark:border-slate-800">
-            <details className={`group rounded-2xl border p-4 transition-all ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <summary className="flex cursor-pointer items-center justify-between font-bold text-xs uppercase tracking-wider text-[var(--text-secondary)] dark:text-slate-400 select-none">
-                <span className="flex items-center gap-2">
-                  <span>ℹ️</span> Información sobre los 14 Alérgenos (Reglamento UE 1169/2011)
+                <span className="inline-block rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white mb-2">
+                  Menú Completo Destacado
                 </span>
-                <span className="transition-transform group-open:rotate-180">▼</span>
-              </summary>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--kitcho-charcoal)] dark:text-white">
+                  {t(currentCollection.name)}
+                </h2>
+                <p className="mt-2 text-2xl font-bold" style={{ color: primaryColor }}>
+                  {Number(currentCollection.fixedPrice.replace(',', '.')).toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  € <span className="text-xs font-semibold text-gray-500">/ persona</span>
+                </p>
+                <button
+                  type="button"
+                  className="mt-4 btn btn-primary btn-sm px-6 font-bold text-white shadow-sm"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  Ver Menú Completo →
+                </button>
+              </div>
+            )}
 
-              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-3 border-t border-[var(--border)] dark:border-slate-800">
-                {ALLERGENS.map((allergen) => (
-                  <div key={allergen.id} className={`flex items-center gap-2 rounded-xl border p-2 text-xs font-semibold ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-[#f8f8f5] border-slate-200 text-slate-700'}`}>
-                    <span className="text-base">{allergen.icon}</span>
-                    <span>{allergen.name}</span>
-                  </div>
+            {/* Grid de Secciones y Cartas Individuales (Recuadros) */}
+            <div>
+              <p className="eyebrow mb-4">Selecciona una sección para ver sus platos</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {visibleCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() =>
+                      setActiveModal({
+                        type: 'category',
+                        title: category.name,
+                        categories: [
+                          {
+                            id: category.id,
+                            name: category.name,
+                            items: category.visibleItems,
+                          },
+                        ],
+                      })
+                    }
+                    className={`card group relative flex flex-col justify-between p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${
+                      isDark
+                        ? '!bg-slate-900 !border-slate-800 hover:!border-slate-700'
+                        : 'bg-white hover:border-orange-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: primaryColor }}
+                        />
+                        <span
+                          className="badge text-white font-bold text-xs"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {category.visibleItems.length} platos
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold tracking-tight group-hover:text-[var(--kitcho-orange)]">
+                        {t(category.name)}
+                      </h3>
+                      <p className={`mt-2 text-xs line-clamp-2 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                        {category.visibleItems.map((i) => t(i.name)).join(' · ')}
+                      </p>
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-between text-xs font-bold" style={{ color: primaryColor }}>
+                      <span>Ver sección</span>
+                      <span className="transition-transform group-hover:translate-x-1">→</span>
+                    </div>
+                  </button>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] leading-5 text-[var(--text-secondary)] dark:text-slate-500">
-                Información referente al Real Decreto 126/2015 y Reglamento (UE) nº 1169/2011. Si padece alguna alergia o intolerancia alimentaria, informe a nuestro personal.
-              </p>
-            </details>
+            </div>
+
+            {/* Leyenda Informativa de Alérgenos (Reglamento UE 1169/2011) */}
+            <div className="pt-8 border-t border-[var(--border)] dark:border-slate-800">
+              <details className={`group rounded-2xl border p-4 transition-all ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <summary className="flex cursor-pointer items-center justify-between font-bold text-xs uppercase tracking-wider text-[var(--text-secondary)] dark:text-slate-400 select-none">
+                  <span className="flex items-center gap-2">
+                    <span>ℹ️</span> Información sobre los 14 Alérgenos (Reglamento UE 1169/2011)
+                  </span>
+                  <span className="transition-transform group-open:rotate-180">▼</span>
+                </summary>
+
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-3 border-t border-[var(--border)] dark:border-slate-800">
+                  {ALLERGENS.map((allergen) => (
+                    <div key={allergen.id} className={`flex items-center gap-2 rounded-xl border p-2 text-xs font-semibold ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-[#f8f8f5] border-slate-200 text-slate-700'}`}>
+                      <span className="text-base">{allergen.icon}</span>
+                      <span>{allergen.name}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[11px] leading-5 text-[var(--text-secondary)] dark:text-slate-500">
+                  Información referente al Real Decreto 126/2015 y Reglamento (UE) nº 1169/2011. Si padece alguna alergia o intolerancia alimentaria, informe a nuestro personal.
+                </p>
+              </details>
+            </div>
           </div>
         )}
       </main>
 
-      {/* Footer */}
+      {/* VENTANA FLOTANTE MODAL (Floating Window Dialog for Selected Category / Menu) */}
+      {activeModal && (
+        <div
+          onClick={() => setActiveModal(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`relative max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-3xl border shadow-2xl flex flex-col animate-scale-in ${
+              isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-[var(--kitcho-charcoal)]'
+            }`}
+          >
+            {/* Modal Header */}
+            <div
+              className={`flex items-center justify-between border-b p-5 ${
+                isDark ? 'border-slate-800 bg-slate-950/80' : 'border-slate-100 bg-slate-50/80'
+              }`}
+            >
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--kitcho-orange)]">
+                  {activeModal.type === 'collection' ? 'Menú Completo' : 'Sección de la Carta'}
+                </p>
+                <h2 className="text-2xl font-extrabold tracking-tight mt-0.5">
+                  {t(activeModal.title)}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 dark:bg-slate-800 text-gray-500 hover:text-gray-900 dark:hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-8 flex-1">
+              {/* Banner de Precio Fijo si es un menú completo */}
+              {activeModal.hasFixedPrice && activeModal.fixedPrice && (
+                <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-4 text-center">
+                  <p className="text-xs font-bold uppercase text-amber-700 dark:text-amber-400">
+                    Precio Menú Completo
+                  </p>
+                  <p className="text-2xl font-extrabold text-amber-900 dark:text-amber-100 mt-1">
+                    {Number(activeModal.fixedPrice.replace(',', '.')).toLocaleString('es-ES', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{' '}
+                    € <span className="text-xs font-normal text-amber-700 dark:text-amber-400">/ persona</span>
+                  </p>
+                </div>
+              )}
+
+              {activeModal.categories.map((cat) => (
+                <div key={cat.id} className="space-y-4">
+                  {activeModal.type === 'collection' && (
+                    <div className="flex items-center gap-3 border-b pb-2 dark:border-slate-800">
+                      <h3 className="text-lg font-bold" style={{ color: primaryColor }}>
+                        {t(cat.name)}
+                      </h3>
+                      <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                    </div>
+                  )}
+
+                  <div className="grid gap-3">
+                    {cat.items.map((item) => (
+                      <MenuItemCard
+                        key={item.id}
+                        name={t(item.name)}
+                        description={t(item.description)}
+                        price={item.price}
+                        allergens={item.allergens}
+                        available={item.available !== false}
+                        primaryColor={primaryColor}
+                        isDark={isDark}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className={`border-t p-4 text-center ${
+                isDark ? 'border-slate-800 bg-slate-950/80' : 'border-slate-100 bg-slate-50/80'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="btn btn-outline btn-sm w-full sm:w-auto font-bold dark:!bg-slate-800 dark:!border-slate-700 dark:!text-white"
+              >
+                Cerrar y ver otras secciones
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Page Footer */}
       <footer
         className={`fixed bottom-0 left-0 right-0 z-30 border-t px-4 py-3 backdrop-blur-xl transition-colors ${
           isDark
@@ -361,13 +506,13 @@ function MenuItemCard({
       <div className="flex items-start justify-between gap-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3
+            <h4
               className={`text-base font-bold sm:text-lg ${
                 isDark ? 'text-slate-100' : 'text-[var(--kitcho-charcoal)]'
               }`}
             >
               {name}
-            </h3>
+            </h4>
 
             {!available && (
               <span className="rounded-md bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
