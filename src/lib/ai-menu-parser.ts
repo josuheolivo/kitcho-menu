@@ -79,7 +79,13 @@ export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-pro'];
+  const candidateModels = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash-exp',
+    'gemini-1.5-pro',
+  ];
   let textContent = '';
   let lastErrorText = '';
 
