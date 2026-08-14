@@ -12,6 +12,7 @@ import {
   ensureMenuStructure,
 } from '@/lib/types';
 import { CheckIcon, MenuIcon, SettingsIcon, SparkIcon } from '@/components/Icons';
+import MenuImportModal from '@/components/MenuImportModal';
 
 interface AdminPanelProps {
   menu: MenuData;
@@ -65,6 +66,7 @@ export default function AdminPanel({
   });
   const [translating, setTranslating] = useState(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Sync menu state when initial prop changes without useEffect setState warning
   const [prevMenu, setPrevMenu] = useState(menu);
@@ -220,13 +222,24 @@ export default function AdminPanel({
     }));
   };
 
-  const removeCategory = (categoryId: string) => {
+  const removeCategory = (id: string) => {
+    setCurrentMenu((prev) => ({
+      ...prev,
+      menus: (prev.menus || []).map((m) =>
+        m.id === activeMenuId
+          ? { ...m, categories: m.categories.filter((cat) => cat.id !== id) }
+          : m
+      ),
+    }));
+  };
+
+  const handleImportCategories = (importedCategories: MenuCategory[]) => {
     if (!currentCollection) return;
     setCurrentMenu((prev) => ({
       ...prev,
       menus: (prev.menus || []).map((m) =>
         m.id === currentCollection.id
-          ? { ...m, categories: m.categories.filter((cat) => cat.id !== categoryId) }
+          ? { ...m, categories: [...m.categories, ...importedCategories] }
           : m
       ),
     }));
@@ -898,9 +911,18 @@ export default function AdminPanel({
                     Añade y organiza las categorías de esta carta ({currentLangLabel}).
                   </p>
                 </div>
-                <button type="button" onClick={addCategory} className="btn btn-outline w-full sm:w-auto dark:!bg-slate-800 dark:!border-slate-700 dark:!text-white">
-                  + Añadir categoría
-                </button>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="btn btn-primary w-full sm:w-auto font-bold bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white border-none shadow-sm"
+                  >
+                    ✨ Importar carta (PDF / Foto)
+                  </button>
+                  <button type="button" onClick={addCategory} className="btn btn-outline w-full sm:w-auto dark:!bg-slate-800 dark:!border-slate-700 dark:!text-white">
+                    + Añadir categoría
+                  </button>
+                </div>
               </div>
 
               {/* Opción de Precio Fijo Global del Menú Completo (ej. Menú del Día / Degustación) */}
@@ -968,6 +990,12 @@ export default function AdminPanel({
           )}
         </section>
       )}
+
+      <MenuImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportCategories}
+      />
     </section>
   );
 }

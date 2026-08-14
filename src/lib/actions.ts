@@ -273,3 +273,40 @@ export async function translateMenuBatch(texts: string[], targetLangs: string[])
   return results;
 }
 
+// ─── Importador de Menú por IA Multimodal ─────────────────────────────────────
+
+import { parseMenuWithAI } from '@/lib/ai-menu-parser';
+import { MAX_FILE_SIZE, ALLOWED_MIME_TYPES } from '@/lib/validations/import';
+
+export async function parseMenuFileAction(formData: FormData) {
+  try {
+    const { user } = await getAuthenticatedClient();
+    if (!user) {
+      return { success: false, error: 'Debes estar autenticado para realizar esta acción.' };
+    }
+
+    const file = formData.get('file') as File | null;
+    if (!file) {
+      return { success: false, error: 'No se ha adjuntado ningún archivo.' };
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return { success: false, error: 'El archivo supera el tamaño máximo permitido de 10 MB.' };
+    }
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return { success: false, error: 'Formato no soportado. Formatos admitidos: PDF, PNG, JPG y WebP.' };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const extractedData = await parseMenuWithAI(buffer, file.type);
+    return { success: true, data: extractedData };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido al analizar la carta.';
+    return { success: false, error: message };
+  }
+}
+
+
