@@ -1,36 +1,47 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { createRestaurant } from '@/lib/actions';
+import { SparkIcon } from '@/components/Icons';
 
 // No prerender this page
 export const dynamic = 'force-dynamic';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleCallback = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          router.replace('/login');
+          return;
+        }
+
         // Check if restaurant exists
-        const { data: existing } = await supabase
+        const { data: existing, error: restaurantError } = await supabase
           .from('restaurants')
           .select('id')
           .eq('owner_id', session.user.id)
           .single();
 
-        if (!existing) {
-          // Create new restaurant with empty data
-          await createRestaurant(session.user.id);
+        if (restaurantError && restaurantError.code !== 'PGRST116') {
+          throw restaurantError;
         }
 
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
+        if (!existing) {
+          // Create new restaurant with empty data
+          await createRestaurant();
+        }
+
+        router.replace('/dashboard');
+      } catch (callbackError) {
+        setError(callbackError instanceof Error ? callbackError.message : 'No se pudo configurar tu cuenta.');
       }
     };
 
@@ -38,10 +49,10 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-[var(--kitcho-accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-400">Configurando tu cuenta...</p>
+    <div className="grid min-h-screen place-items-center bg-[#f7f7f4] px-5">
+      <div className="card w-full max-w-sm p-8 text-center animate-scale-in">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--kitcho-orange)] text-white"><SparkIcon className="h-6 w-6" /></span>
+        <p className="mt-5 font-bold text-[var(--kitcho-charcoal)]">{error || 'Configurando tu cuenta…'}</p>
       </div>
     </div>
   );

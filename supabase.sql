@@ -27,6 +27,7 @@ create table if not exists menus (
 
 -- Índices
 create index if not exists idx_restaurants_owner on restaurants(owner_id);
+create unique index if not exists idx_restaurants_owner_unique on restaurants(owner_id);
 create index if not exists idx_restaurants_slug on restaurants(slug);
 create index if not exists idx_menus_restaurant on menus(restaurant_id);
 
@@ -43,7 +44,7 @@ begin
     base_slug := lower(regexp_replace(new.name, '[^a-zA-Z0-9]+', '-', 'g'));
     base_slug := trim(both '-' from base_slug);
   else
-    base_slug := 'restaurant-' || substr(new.id, 1, 8);
+    base_slug := 'restaurant-' || substr(new.id::text, 1, 8);
   end if;
   
   final_slug := base_slug;

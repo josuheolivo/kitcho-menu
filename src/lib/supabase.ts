@@ -2,7 +2,8 @@
 // Cliente Supabase — Kitcho Menu
 // =============================================
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Use a getter to lazy-initialize the client
 let _supabase: SupabaseClient | null = null;
@@ -15,11 +16,8 @@ export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
       if (!url || !key) {
         throw new Error('Supabase URL and ANON KEY must be set in environment variables');
       }
-      _supabase = createClient(url, key, {
+      _supabase = createBrowserClient(url, key, {
         auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
           flowType: 'pkce',
         },
       });
@@ -47,4 +45,22 @@ export interface DbMenu {
   restaurant_id: string;
   data: unknown;
   updated_at: string;
+}
+
+export async function createPublicServerClient() {
+  const { cookies } = await import('next/headers');
+  const { createServerClient } = await import('@supabase/ssr');
+  
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error('Supabase URL and ANON KEY must be set in environment variables');
+  }
+
+  const cookieStore = await cookies();
+  return createServerClient(url, key, {
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+    },
+  });
 }
