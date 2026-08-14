@@ -1,8 +1,9 @@
 // =============================================
-// Motor de Extracción de Menús con IA Multimodal (Google Gemini API Cascade)
+// Motor de Extracción de Menús con IA Multimodal (Google Generative AI SDK)
 // Soporte Multi-Carta, Menús Degustación y Bilingüismo (ES / EN)
 // =============================================
 
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ExtractedMenu, ExtractedMenuSchema } from './validations/import';
 
 const ALLERGEN_ALIAS_MAP: Record<string, string> = {
@@ -70,7 +71,17 @@ export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise
     ''
   ).trim().replace(/^["']|["']$/g, '');
 
-  const base64Data = buffer.toString('base64');
+  if (!apiKey) {
+    throw new Error(
+      'Falta la clave GEMINI_API_KEY en las variables de entorno. Obtén una clave de API válida en https://aistudio.google.com/app/apikey (debe empezar por AIzaSy...).'
+    );
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+
+  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-pro'];
+  let textContent = '';
+  let lastErrorText = '';
 
   const promptText = `
 Eres un chef, sumiller y gestor de cartas de restaurantes de alta gastronomía en España y Europa.
@@ -122,77 +133,38 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
 }
 `.trim();
 
-  // Lista en cascada de versiones de API y nombres de modelo para máxima resistencia contra HTTP 404
-  const candidateEndpoints = [
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
-  ];
-
-  let response: Response | null = null;
-  let lastErrorText = '';
-
-  const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-goog-api-key': apiKey,
+  const filePart = {
+    inlineData: {
+      data: buffer.toString('base64'),
+      mimeType,
+    },
   };
 
-  if (apiKey.startsWith('AQ') || apiKey.startsWith('ya29')) {
-    requestHeaders['Authorization'] = `Bearer ${apiKey}`;
-  }
-
-  for (const baseUrl of candidateEndpoints) {
-    const endpoint = `${baseUrl}?key=${apiKey}`;
+  for (const modelName of candidateModels) {
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: promptText },
-                {
-                  inlineData: {
-                    mimeType,
-                    data: base64Data,
-                  },
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-          },
-        }),
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+        },
       });
 
-      if (res.ok) {
-        response = res;
-        break;
-      }
-      lastErrorText = await res.text();
-      console.warn(`Gemini API Endpoint ${baseUrl} returned HTTP ${res.status}:`, lastErrorText);
-    } catch (e) {
-      console.warn(`Error connecting to Gemini API endpoint ${baseUrl}:`, e);
+      const result = await model.generateContent([promptText, filePart]);
+      const response = await result.response;
+      textContent = response.text();
+
+      if (textContent) break;
+    } catch (err: unknown) {
+      lastErrorText = err instanceof Error ? err.message : String(err);
+      console.warn(`Error probando modelo ${modelName} con el SDK:`, lastErrorText);
     }
   }
 
-  if (!response || !response.ok) {
-    throw new Error(
-      `No se pudo conectar con el servicio de IA de Google Gemini. Comprueba que tu GEMINI_API_KEY esté activa en Google AI Studio. (Detalle: ${lastErrorText.slice(0, 140)})`
-    );
-  }
-
-  const jsonResponse = await response.json();
-  const textContent = jsonResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
-
   if (!textContent) {
-    throw new Error('La IA no pudo procesar la carta. Asegúrate de que el documento o la imagen sea legible.');
+    throw new Error(
+      `No se pudo conectar con el servicio de IA. Asegúrate de estar usando una clave de API válida de Google AI Studio (empieza por AIzaSy...). (Detalle: ${lastErrorText.slice(0, 140)})`
+    );
   }
 
   let parsedRaw: unknown;
