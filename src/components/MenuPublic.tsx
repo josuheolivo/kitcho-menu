@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MenuData, Translatable, ALLERGENS, ensureMenuStructure, MenuCollection, MenuCategory, MenuItem } from '@/lib/types';
+import { MenuData, Translatable, ALLERGENS, ensureMenuStructure, MenuItem } from '@/lib/types';
 import BrandMark from '@/components/BrandMark';
 import { GlobeIcon, SparkIcon } from '@/components/Icons';
 
