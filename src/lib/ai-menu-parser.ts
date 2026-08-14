@@ -67,7 +67,7 @@ export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise
     process.env.GEMINI_API_KEY ||
     process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
     process.env.GOOGLE_AI_API_KEY ||
-    'AIzaSyCQ_vYj3NYyCAfnyeiu-lO8WC2U36_2t_8'
+    ''
   ).trim().replace(/^["']|["']$/g, '');
 
   const base64Data = buffer.toString('base64');
@@ -135,14 +135,21 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
   let response: Response | null = null;
   let lastErrorText = '';
 
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-goog-api-key': apiKey,
+  };
+
+  if (apiKey.startsWith('AQ') || apiKey.startsWith('ya29')) {
+    requestHeaders['Authorization'] = `Bearer ${apiKey}`;
+  }
+
   for (const baseUrl of candidateEndpoints) {
     const endpoint = `${baseUrl}?key=${apiKey}`;
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: requestHeaders,
         body: JSON.stringify({
           contents: [
             {
@@ -177,7 +184,7 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
 
   if (!response || !response.ok) {
     throw new Error(
-      `No se pudo conectar con el servicio de IA de Google Gemini. Comprueba que tu GEMINI_API_KEY esté activa en Google AI Studio. (Detalle: ${lastErrorText.slice(0, 120)})`
+      `No se pudo conectar con el servicio de IA de Google Gemini. Comprueba que tu GEMINI_API_KEY esté activa en Google AI Studio. (Detalle: ${lastErrorText.slice(0, 140)})`
     );
   }
 
