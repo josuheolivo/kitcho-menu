@@ -66,19 +66,38 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
     setStep('analyzing');
     setError(null);
 
-    const formData = new FormData();
-    formData.append('file', file);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const resultString = reader.result as string;
+          const base64 = resultString.split(',')[1];
+          const result = await parseMenuFileAction({ base64, mimeType: file.type });
 
-    const result = await parseMenuFileAction(formData);
+          if (!result.success || !result.data) {
+            setError(result.error || 'No se pudo analizar el archivo. Intenta con una imagen o PDF más claro.');
+            setStep('upload');
+            return;
+          }
 
-    if (!result.success || !result.data) {
-      setError(result.error || 'No se pudo analizar el archivo. Intenta con una imagen o PDF más claro.');
+          setExtractedCategories(result.data.categories || []);
+          setStep('review');
+        } catch (err: unknown) {
+          console.error('Error al invocar Server Action de IA:', err);
+          setError('Ocurrió un error al procesar el archivo. Revisa que el archivo no supere los 10 MB e inténtalo de nuevo.');
+          setStep('upload');
+        }
+      };
+      reader.onerror = () => {
+        setError('No se pudo leer el archivo local.');
+        setStep('upload');
+      };
+      reader.readAsDataURL(file);
+    } catch (err: unknown) {
+      console.error('Error en handleAnalyze:', err);
+      setError('Error al procesar el archivo.');
       setStep('upload');
-      return;
     }
-
-    setExtractedCategories(result.data.categories || []);
-    setStep('review');
   };
 
   // Review & Edit Handlers

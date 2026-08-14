@@ -278,32 +278,31 @@ export async function translateMenuBatch(texts: string[], targetLangs: string[])
 import { parseMenuWithAI } from '@/lib/ai-menu-parser';
 import { MAX_FILE_SIZE, ALLOWED_MIME_TYPES } from '@/lib/validations/import';
 
-export async function parseMenuFileAction(formData: FormData) {
+export async function parseMenuFileAction(payload: { base64: string; mimeType: string }) {
   try {
     const { user } = await getAuthenticatedClient();
     if (!user) {
       return { success: false, error: 'Debes estar autenticado para realizar esta acción.' };
     }
 
-    const file = formData.get('file') as File | null;
-    if (!file) {
+    const { base64, mimeType } = payload || {};
+    if (!base64 || !mimeType) {
       return { success: false, error: 'No se ha adjuntado ningún archivo.' };
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return { success: false, error: 'El archivo supera el tamaño máximo permitido de 10 MB.' };
-    }
-
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return { success: false, error: 'Formato no soportado. Formatos admitidos: PDF, PNG, JPG y WebP.' };
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(base64, 'base64');
+    if (buffer.length > MAX_FILE_SIZE) {
+      return { success: false, error: 'El archivo supera el tamaño máximo permitido de 10 MB.' };
+    }
 
-    const extractedData = await parseMenuWithAI(buffer, file.type);
+    const extractedData = await parseMenuWithAI(buffer, mimeType);
     return { success: true, data: extractedData };
   } catch (err: unknown) {
+    console.error('Error en parseMenuFileAction:', err);
     const message = err instanceof Error ? err.message : 'Error desconocido al analizar la carta.';
     return { success: false, error: message };
   }
