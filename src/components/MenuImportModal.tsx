@@ -325,7 +325,7 @@ export default function MenuImportModal({ isOpen, onClose, onImport }: MenuImpor
 
               {extractedCategories.length === 0 ? (
                 <div className="py-12 text-center text-sm text-gray-500">
-                  No se detectaron categorías en la carta. Haz clic en "+ Nueva categoría" para agregar manualmente.
+                  No se detectaron categorías en la carta. Haz clic en &quot;+ Nueva categoría&quot; para agregar manualmente.
                 </div>
               ) : (
                 <div className="space-y-8">
