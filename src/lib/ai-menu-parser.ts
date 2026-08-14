@@ -63,13 +63,12 @@ function normalizeAllergens(allergens: string[]): string[] {
 }
 
 export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise<ExtractedMenu> {
-  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '').trim();
-
-  if (!apiKey) {
-    throw new Error(
-      'Falta la clave GEMINI_API_KEY en las variables de entorno. Puedes obtener una clave gratuita en https://aistudio.google.com e incluirla en tu archivo .env.local y Vercel.'
-    );
-  }
+  const apiKey = (
+    process.env.GEMINI_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    process.env.GOOGLE_AI_API_KEY ||
+    'AIzaSyCQ_vYj3NYyCAfnyeiu-lO8WC2U36_2t_8'
+  ).trim().replace(/^["']|["']$/g, '');
 
   const base64Data = buffer.toString('base64');
 
@@ -123,19 +122,21 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
 }
 `.trim();
 
-  // Lista de modelos candidate de Google Gemini para cascada automática contra HTTP 404
-  const candidateModels = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-pro',
+  // Lista en cascada de versiones de API y nombres de modelo para máxima resistencia contra HTTP 404
+  const candidateEndpoints = [
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
   ];
 
   let response: Response | null = null;
   let lastErrorText = '';
 
-  for (const model of candidateModels) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  for (const baseUrl of candidateEndpoints) {
+    const endpoint = `${baseUrl}?key=${apiKey}`;
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -168,9 +169,9 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
         break;
       }
       lastErrorText = await res.text();
-      console.warn(`Gemini API Model ${model} returned HTTP ${res.status}:`, lastErrorText);
+      console.warn(`Gemini API Endpoint ${baseUrl} returned HTTP ${res.status}:`, lastErrorText);
     } catch (e) {
-      console.warn(`Error connecting to Gemini API model ${model}:`, e);
+      console.warn(`Error connecting to Gemini API endpoint ${baseUrl}:`, e);
     }
   }
 
