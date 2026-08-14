@@ -149,7 +149,7 @@ async function translateSingleTextFallback(text: string, targetLang: string): Pr
         }
       }
     }
-  } catch (err) {
+  } catch {
     // Continuar al siguiente fallback
   }
 
@@ -173,7 +173,7 @@ async function translateSingleTextFallback(text: string, targetLang: string): Pr
         return data.translatedText;
       }
     }
-  } catch (err) {
+  } catch {
     // Continuar al siguiente fallback
   }
 
@@ -192,7 +192,7 @@ async function translateSingleTextFallback(text: string, targetLang: string): Pr
         return normalizeCase(json.responseData.translatedText as string);
       }
     }
-  } catch (err) {
+  } catch {
     // Silencioso
   }
 

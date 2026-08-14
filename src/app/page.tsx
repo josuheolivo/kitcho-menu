@@ -9,7 +9,6 @@ import {
   GlobeIcon,
   MenuIcon,
   PenIcon,
-  QrIcon,
   SparkIcon,
 } from '@/components/Icons';
 

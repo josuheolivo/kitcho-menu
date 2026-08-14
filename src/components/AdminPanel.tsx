@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   MenuData,
   MenuCollection,
@@ -57,22 +57,21 @@ export default function AdminPanel({
   const [activeMenuId, setActiveMenuId] = useState<string>(
     () => currentMenu.menus?.[0]?.id || 'default-menu'
   );
-  const [adminDarkMode, setAdminDarkMode] = useState(false);
+  const [adminDarkMode, setAdminDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('kitcho_admin_dark') === 'true';
+    }
+    return false;
+  });
   const [translating, setTranslating] = useState(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
 
-  // Sync menu state if external prop updates
-  useEffect(() => {
-    if (menu) {
-      setCurrentMenu(ensureMenuStructure(menu));
-    }
-  }, [menu]);
-
-  // Read admin dark mode preference
-  useEffect(() => {
-    const savedDark = localStorage.getItem('kitcho_admin_dark') === 'true';
-    setAdminDarkMode(savedDark);
-  }, []);
+  // Sync menu state when initial prop changes without useEffect setState warning
+  const [prevMenu, setPrevMenu] = useState(menu);
+  if (menu && menu !== prevMenu) {
+    setPrevMenu(menu);
+    setCurrentMenu(ensureMenuStructure(menu));
+  }
 
   const toggleAdminDarkMode = () => {
     setAdminDarkMode((prev) => {
@@ -1067,7 +1066,6 @@ function CategoryEditor({
             item={item}
             categoryId={category.id}
             activeLang={activeLang}
-            adminDarkMode={adminDarkMode}
             onUpdate={onUpdateItem}
             onToggleAvailable={onToggleItemAvailable}
             onUpdateAllergens={onUpdateAllergens}
@@ -1090,7 +1088,6 @@ interface ItemEditorProps {
   item: MenuItem;
   categoryId: string;
   activeLang: Language;
-  adminDarkMode?: boolean;
   onUpdate: (categoryId: string, itemId: string, field: 'name' | 'price' | 'description', value: string) => void;
   onToggleAvailable: (categoryId: string, itemId: string) => void;
   onUpdateAllergens: (categoryId: string, itemId: string, allergens: string[]) => void;
@@ -1101,7 +1098,6 @@ function ItemEditor({
   item,
   categoryId,
   activeLang,
-  adminDarkMode,
   onUpdate,
   onToggleAvailable,
   onUpdateAllergens,
