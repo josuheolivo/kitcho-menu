@@ -171,30 +171,30 @@ export default function A5QrPosterModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="card max-h-[95vh] w-full max-w-4xl overflow-hidden flex flex-col bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
+      <div className="card max-h-[95vh] w-full max-w-4xl overflow-hidden flex flex-col bg-white text-slate-900 border-slate-200 shadow-2xl">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4 bg-slate-50 dark:bg-slate-950/40">
+        <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4 bg-slate-900 text-white">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-extrabold text-white">
               Diseñador de Cartel de Mesa A5 (Impresión)
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-300">
               Formato A5 profesional (148 x 210 mm) listo para imprimir o enviar a imprenta.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-white font-bold text-xl px-2"
+            className="text-slate-300 hover:text-white font-bold text-xl px-2"
           >
             ✕
           </button>
         </div>
 
         {/* Modal Body: Live A5 Preview & Action Panel */}
-        <div className="p-6 overflow-y-auto flex-1 grid gap-8 md:grid-cols-[1fr_260px] items-start">
+        <div className="p-6 overflow-y-auto flex-1 grid gap-8 md:grid-cols-[1fr_280px] items-start">
           {/* Printable A5 Live Preview Card Container */}
-          <div className="flex justify-center bg-slate-100 dark:bg-slate-950 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="flex justify-center bg-slate-950 p-6 rounded-2xl border border-slate-800">
             <div
               ref={printAreaRef}
               id="a5-print-area"
@@ -280,11 +280,11 @@ export default function A5QrPosterModal({
 
           {/* Side Controls / Export Buttons */}
           <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 mb-1.5">
                 Opciones de Impresión
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-5">
+              <p className="text-xs text-slate-600 leading-5">
                 Diseñado en **formato A5** ideal para portamenús de madera, soportes de metacrilato en mesas o servilleteros.
               </p>
             </div>
@@ -293,7 +293,7 @@ export default function A5QrPosterModal({
               type="button"
               onClick={handleDownloadHD}
               disabled={downloading}
-              className="btn btn-primary btn-lg w-full font-bold shadow-md"
+              className="btn btn-primary btn-lg w-full font-bold text-white shadow-md cursor-pointer"
               style={{ backgroundColor: primaryColor }}
             >
               {downloading ? 'Generando PNG HD…' : '📥 Descargar Cartel A5 (PNG HD)'}
@@ -302,12 +302,12 @@ export default function A5QrPosterModal({
             <button
               type="button"
               onClick={handlePrint}
-              className="btn btn-outline btn-lg w-full font-bold dark:!border-slate-700 dark:!text-white"
+              className="flex items-center justify-center gap-2 rounded-xl border-2 border-slate-300 bg-white hover:bg-slate-100 px-5 py-3 text-sm font-extrabold text-slate-800 shadow-sm transition-all cursor-pointer w-full min-h-[48px]"
             >
-              🖨️ Imprimir Cartel (A5)
+              <span>🖨️ Imprimir Cartel (A5)</span>
             </button>
 
-            <p className="text-[11px] text-slate-400 text-center leading-4 pt-2">
+            <p className="text-[11px] text-slate-500 text-center leading-4 pt-1">
               💡 Alta Resolución (1414 x 2000px). Listo para imprenta o impresión directa.
             </p>
           </div>
