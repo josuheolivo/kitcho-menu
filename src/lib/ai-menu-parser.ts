@@ -73,19 +73,22 @@ export async function parseMenuWithAI(buffer: Buffer, mimeType: string): Promise
 
   if (!apiKey) {
     throw new Error(
-      'Falta la clave GEMINI_API_KEY en las variables de entorno. Obtén una clave de API válida en https://aistudio.google.com/app/apikey (debe empezar por AIzaSy...).'
+      'Falta la clave GEMINI_API_KEY en las variables de entorno. Obtén una clave de API en https://aistudio.google.com/app/apikey.'
     );
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
+  // Lista de modelos candidate de Google Gemini ordenada por disponibilidad actual
   const candidateModels = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash-latest',
+    'gemini-3.5-flash',
+    'gemini-3.7-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
     'gemini-1.5-flash',
-    'gemini-2.0-flash-exp',
-    'gemini-1.5-pro',
   ];
+
   let textContent = '';
   let lastErrorText = '';
 
@@ -169,7 +172,7 @@ REGLA DE SALIDA ESTRICTA: Responde ÚNICAMENTE con un JSON válido respetando es
 
   if (!textContent) {
     throw new Error(
-      `No se pudo conectar con el servicio de IA. Asegúrate de estar usando una clave de API válida de Google AI Studio (empieza por AIzaSy...). (Detalle: ${lastErrorText.slice(0, 140)})`
+      `No se pudo conectar con el servicio de IA. Asegúrate de estar usando una clave de API válida de Google AI Studio. (Detalle: ${lastErrorText.slice(0, 140)})`
     );
   }
 
