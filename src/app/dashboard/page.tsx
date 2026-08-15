@@ -53,18 +53,29 @@ export default function DashboardPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      // 1. Fetch restaurant row
+      const { data: restData, error: restError } = await supabase
         .from('restaurants')
         .select('*')
         .eq('owner_id', user.id)
         .single();
 
-      if (error || !data) {
+      if (restError || !restData) {
         router.push('/register');
         return;
       }
 
-      setRestaurant(data);
+      // 2. Fetch actual menu JSON from 'menus' table
+      const { data: menuRow } = await supabase
+        .from('menus')
+        .select('data')
+        .eq('restaurant_id', restData.id)
+        .single();
+
+      setRestaurant({
+        ...restData,
+        menu_json: menuRow?.data ? (menuRow.data as MenuData) : null,
+      });
       setLoading(false);
     }
 
