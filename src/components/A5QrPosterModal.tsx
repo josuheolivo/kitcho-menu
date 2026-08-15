@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { SparkIcon, CheckIcon } from './Icons';
+import { SparkIcon } from './Icons';
 
 interface A5QrPosterModalProps {
   isOpen: boolean;
