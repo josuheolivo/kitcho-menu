@@ -1,71 +1,15 @@
 // =============================================
-// Tipos TypeScript — Kitcho Menu V2.0
+// Tipos Principales de Kitcho Menu V2.0
 // =============================================
 
-export interface Restaurant {
-  id: string;
-  owner_id: string;
-  name: string | null;
-  slug: string;
-  logo_url: string | null;
-  trial_starts_at: string;
-  trial_ends_at: string;
-  plan: 'trial' | 'free' | 'pro';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MenuData {
-  restaurantName: string;
-  tagline: Translatable;
-  version: number;
-  categories?: MenuCategory[];  // Legacy support
-  menus?: MenuCollection[];     // V2.0 Multi-menu support
-  showName?: boolean;
-  showLogo?: boolean;
-  primaryColor?: string;        // HEX e.g. '#ea580c'
-  themeMode?: 'light' | 'dark'; // 'light' | 'dark'
-}
-
-export interface MenuCollection {
-  id: string;
-  name: Translatable;           // e.g. "Carta Principal", "Carta de Bebidas", "Menú del Día"
-  available?: boolean;          // Encendido / Apagado
-  hasFixedPrice?: boolean;      // Si tiene un precio fijo global (ej. Menú del Día / Degustación)
-  fixedPrice?: string;          // Valor del precio fijo global (ej. "14.50")
-  categories: MenuCategory[];
-}
-
-export interface MenuCategory {
-  id: string;
-  name: Translatable;
-  available?: boolean;          // Encendido / Apagado
-  items: MenuItem[];
-}
-
-export interface MenuItem {
-  id: string;
-  price: string;
-  name: Translatable;
-  description: Translatable;
-  allergens?: string[];
-  available?: boolean;          // Encendido / Apagado (Agotado)
-}
-
 export interface Translatable {
-  es: string;
-  en: string;
-  ko: string;
-  fr: string;
-  it: string;
-  pt: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  avatar_url: string | null;
+  es?: string;
+  en?: string;
+  ko?: string;
+  fr?: string;
+  it?: string;
+  pt?: string;
+  [key: string]: string | undefined;
 }
 
 export const EMPTY_TRANSLATABLE: Translatable = {
@@ -80,7 +24,7 @@ export const EMPTY_TRANSLATABLE: Translatable = {
 export const EMPTY_MENU: MenuData = {
   restaurantName: '',
   tagline: { ...EMPTY_TRANSLATABLE },
-  version: Date.now(),
+  version: 1,
   showName: true,
   showLogo: true,
   primaryColor: '#ea580c',
@@ -95,12 +39,51 @@ export const EMPTY_MENU: MenuData = {
   ],
 };
 
+export interface MenuItem {
+  id: string;
+  price: string;
+  name: Translatable;
+  description: Translatable;
+  available?: boolean;
+  allergens?: string[];
+}
+
+export interface MenuCategory {
+  id: string;
+  name: Translatable;
+  available?: boolean;
+  items: MenuItem[];
+}
+
+export interface MenuCollection {
+  id: string;
+  name: Translatable;
+  available?: boolean;
+  hasFixedPrice?: boolean;
+  fixedPrice?: string;
+  categories: MenuCategory[];
+}
+
+export interface MenuData {
+  restaurantName: string;
+  tagline: Translatable;
+  version: number;
+  showName?: boolean;
+  showLogo?: boolean;
+  primaryColor?: string;
+  themeMode?: 'light' | 'dark';
+  menus?: MenuCollection[];
+}
+
 export function generateId(): string {
-  return crypto.randomUUID();
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'id_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 }
 
 /**
- * Garantiza la retrocompatibilidad y la estructura completa V2.0 de MenuData
+ * Garantiza la retrocompatibilidad y la estructura completa V2.0 de MenuData con IDs estables
  */
 export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined): MenuData {
   const version = menu?.version || Date.now();
@@ -114,34 +97,37 @@ export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined):
   let menusList: MenuCollection[] = [];
 
   if (Array.isArray(menu?.menus) && menu.menus.length > 0) {
-    menusList = menu.menus.map((m) => ({
-      id: m.id || generateId(),
+    menusList = menu.menus.map((m, mIdx) => ({
+      id: m.id || `menu-${mIdx}`,
       name: m.name || { ...EMPTY_TRANSLATABLE, es: 'Carta' },
       available: m.available !== false,
       hasFixedPrice: m.hasFixedPrice === true,
       fixedPrice: m.fixedPrice || '',
-      categories: (m.categories || []).map((cat) => ({
-        id: cat.id || generateId(),
+      categories: (m.categories || []).map((cat, cIdx) => ({
+        id: cat.id || `cat-${mIdx}-${cIdx}`,
         name: cat.name || { ...EMPTY_TRANSLATABLE },
         available: cat.available !== false,
-        items: (cat.items || []).map((item) => ({
+        items: (cat.items || []).map((item, iIdx) => ({
           ...item,
+          id: item.id || `item-${mIdx}-${cIdx}-${iIdx}`,
           available: item.available !== false,
         })),
       })),
     }));
-  } else if (Array.isArray(menu?.categories)) {
+  } else if (Array.isArray((menu as unknown as { categories?: MenuCategory[] })?.categories)) {
+    const oldCategories = (menu as unknown as { categories: MenuCategory[] }).categories;
     menusList = [
       {
-        id: generateId(),
+        id: 'default-menu',
         name: { ...EMPTY_TRANSLATABLE, es: 'Carta Principal', en: 'Main Menu' },
         available: true,
-        categories: menu.categories.map((cat) => ({
-          id: cat.id || generateId(),
+        categories: oldCategories.map((cat, cIdx) => ({
+          id: cat.id || `cat-0-${cIdx}`,
           name: cat.name || { ...EMPTY_TRANSLATABLE },
           available: cat.available !== false,
-          items: (cat.items || []).map((item) => ({
+          items: (cat.items || []).map((item, iIdx) => ({
             ...item,
+            id: item.id || `item-0-${cIdx}-${iIdx}`,
             available: item.available !== false,
           })),
         })),
@@ -150,7 +136,7 @@ export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined):
   } else {
     menusList = [
       {
-        id: generateId(),
+        id: 'default-menu',
         name: { ...EMPTY_TRANSLATABLE, es: 'Carta Principal', en: 'Main Menu' },
         available: true,
         categories: [],
@@ -178,17 +164,17 @@ export interface Allergen {
 
 export const ALLERGENS: Allergen[] = [
   { id: 'gluten', name: 'Gluten', icon: '🌾' },
-  { id: 'crustaceos', name: 'Crustáceos', icon: '🦀' },
+  { id: 'crustaceos', name: 'Crustáceos', icon: '🦞' },
   { id: 'huevos', name: 'Huevos', icon: '🥚' },
   { id: 'pescado', name: 'Pescado', icon: '🐟' },
   { id: 'cacahuetes', name: 'Cacahuetes', icon: '🥜' },
   { id: 'soja', name: 'Soja', icon: '🫘' },
-  { id: 'lacteos', name: 'Lácteos', icon: '🥛' },
+  { id: 'lacteos', name: 'Lácteos', icon: '🧀' },
   { id: 'frutos_cascara', name: 'Frutos de cáscara', icon: '🌰' },
   { id: 'apio', name: 'Apio', icon: '🥬' },
-  { id: 'mostaza', name: 'Mostaza', icon: '🍯' },
+  { id: 'mostaza', name: 'Mostaza', icon: '🌭' },
   { id: 'sesamo', name: 'Sésamo', icon: '🥯' },
   { id: 'sulfitos', name: 'Sulfitos', icon: '🍷' },
-  { id: 'altramuces', name: 'Altramuces', icon: '🌱' },
+  { id: 'altramuces', name: 'Altramuces', icon: '🌼' },
   { id: 'moluscos', name: 'Moluscos', icon: '🦪' },
 ];

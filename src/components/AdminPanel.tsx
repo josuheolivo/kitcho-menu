@@ -68,11 +68,19 @@ export default function AdminPanel({
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Sync menu state when initial prop changes without useEffect setState warning
+  // Sync menu state when initial prop changes safely
   const [prevMenu, setPrevMenu] = useState(menu);
-  if (menu && menu !== prevMenu) {
+  if (menu && JSON.stringify(menu.menus) !== JSON.stringify(prevMenu?.menus)) {
     setPrevMenu(menu);
-    setCurrentMenu(ensureMenuStructure(menu));
+    const normalized = ensureMenuStructure(menu);
+    setCurrentMenu(normalized);
+    if (normalized.menus && normalized.menus.length > 0) {
+      const firstId = normalized.menus[0].id;
+      setActiveMenuId((prevId) => {
+        const exists = normalized.menus?.some((m) => m.id === prevId);
+        return exists ? prevId : firstId;
+      });
+    }
   }
 
   const toggleAdminDarkMode = () => {
@@ -235,19 +243,25 @@ export default function AdminPanel({
 
   const handleImportCollections = (importedCollections: MenuCollection[]) => {
     if (!importedCollections.length) return;
+    const firstImportedId = importedCollections[0]?.id;
+
     setCurrentMenu((prev) => {
       const existing = prev.menus || [];
+      let updatedMenus: MenuCollection[];
       if (existing.length === 1 && (existing[0].categories || []).length === 0) {
-        return {
-          ...prev,
-          menus: importedCollections,
-        };
+        updatedMenus = importedCollections;
+      } else {
+        updatedMenus = [...existing, ...importedCollections];
       }
-      return {
-        ...prev,
-        menus: [...existing, ...importedCollections],
-      };
+      const updated = { ...prev, menus: updatedMenus };
+      // Auto-save to Supabase DB so it persists permanently
+      setTimeout(() => onSave(updated), 50);
+      return updated;
     });
+
+    if (firstImportedId) {
+      setActiveMenuId(firstImportedId);
+    }
   };
 
   // ─── Handlers de Platos / Items ─────────────────────────────────────

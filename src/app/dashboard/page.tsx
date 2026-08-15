@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { MenuData, ensureMenuStructure, EMPTY_TRANSLATABLE } from '@/lib/types';
@@ -112,8 +112,10 @@ export default function DashboardPage() {
 
   const daysRemaining = getTrialDaysRemaining(restaurant.trial_ends_at);
   const trialActive = daysRemaining > 0;
-  const rawMenu = restaurant.menu_json || { restaurantName: restaurant.name, tagline: EMPTY_TRANSLATABLE, version: 1 };
-  const menu = ensureMenuStructure(rawMenu);
+  const menu = useMemo(
+    () => ensureMenuStructure(restaurant.menu_json || { restaurantName: restaurant.name, tagline: EMPTY_TRANSLATABLE, version: 1 }),
+    [restaurant.menu_json, restaurant.name]
+  );
   const publicUrl = `${window.location.origin}/menu/${restaurant.slug}`;
 
   return (
