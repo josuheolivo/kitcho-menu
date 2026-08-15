@@ -31,6 +31,19 @@ export default function DashboardPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isA5ModalOpen, setIsA5ModalOpen] = useState(false);
 
+  // Call useMemo BEFORE any conditional early returns (React Rules of Hooks)
+  const menu = useMemo(
+    () =>
+      ensureMenuStructure(
+        restaurant?.menu_json || {
+          restaurantName: restaurant?.name || '',
+          tagline: EMPTY_TRANSLATABLE,
+          version: 1,
+        }
+      ),
+    [restaurant?.menu_json, restaurant?.name]
+  );
+
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -112,10 +125,6 @@ export default function DashboardPage() {
 
   const daysRemaining = getTrialDaysRemaining(restaurant.trial_ends_at);
   const trialActive = daysRemaining > 0;
-  const menu = useMemo(
-    () => ensureMenuStructure(restaurant.menu_json || { restaurantName: restaurant.name, tagline: EMPTY_TRANSLATABLE, version: 1 }),
-    [restaurant.menu_json, restaurant.name]
-  );
   const publicUrl = `${window.location.origin}/menu/${restaurant.slug}`;
 
   return (
@@ -218,6 +227,7 @@ export default function DashboardPage() {
         </section>
 
         <AdminPanel
+          key={`${restaurant.id}_${restaurant.menu_json?.version || 1}`}
           menu={menu}
           restaurantLogoUrl={restaurant.logo_url}
           onSave={handleSave}

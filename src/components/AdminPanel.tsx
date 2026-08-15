@@ -68,20 +68,7 @@ export default function AdminPanel({
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Sync menu state when initial prop changes safely
-  const [prevMenu, setPrevMenu] = useState(menu);
-  if (menu && JSON.stringify(menu.menus) !== JSON.stringify(prevMenu?.menus)) {
-    setPrevMenu(menu);
-    const normalized = ensureMenuStructure(menu);
-    setCurrentMenu(normalized);
-    if (normalized.menus && normalized.menus.length > 0) {
-      const firstId = normalized.menus[0].id;
-      setActiveMenuId((prevId) => {
-        const exists = normalized.menus?.some((m) => m.id === prevId);
-        return exists ? prevId : firstId;
-      });
-    }
-  }
+
 
   const toggleAdminDarkMode = () => {
     setAdminDarkMode((prev) => {
