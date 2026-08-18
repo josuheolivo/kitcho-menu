@@ -200,12 +200,16 @@ export default function LandingPage() {
         {/* CTA final */}
         <section className="bg-[#f7f7f4] py-20 sm:py-28">
           <div className="container">
-            <div className="card card-raised overflow-hidden bg-[var(--kitcho-orange)] px-6 py-12 text-center text-white sm:px-12 sm:py-16 relative">
-              <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 90% 10%, #ffffff, transparent 40%)' }} />
-              <p className="eyebrow justify-center !text-orange-100 before:!bg-orange-100">Empieza hoy</p>
-              <h2 className="display mx-auto mt-4 max-w-2xl text-4xl sm:text-5xl">Que tu menú hable tan bien de ti como tu cocina.</h2>
-              <p className="mx-auto mt-5 max-w-lg text-lg leading-8 text-orange-50">Diseña tu carta digital hoy. Prueba Kitcho Menu durante 15 días sin compromiso.</p>
-              <Link href="/register" className="btn btn-lg mt-8 border-white bg-white text-[var(--kitcho-orange-dark)] hover:bg-orange-50 shadow-lg font-bold">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#172033] via-[#1e2a42] to-[#ea580c] px-6 py-12 text-center text-white sm:px-12 sm:py-16 shadow-2xl border border-slate-700/50">
+              <div className="pointer-events-none absolute inset-0 opacity-25" style={{ backgroundImage: 'radial-gradient(circle at 90% 10%, #ea580c, transparent 50%)' }} />
+              <p className="eyebrow justify-center !text-[#facc15] before:!bg-[#facc15]">Empieza hoy mismo</p>
+              <h2 className="display mx-auto mt-4 max-w-2xl text-3xl sm:text-5xl font-extrabold text-white leading-tight">
+                Que tu menú hable tan bien de ti como tu cocina.
+              </h2>
+              <p className="mx-auto mt-4 max-w-lg text-base sm:text-lg leading-7 text-slate-200">
+                Diseña tu carta digital hoy. Prueba Kitcho Menu durante 15 días sin compromiso.
+              </p>
+              <Link href="/register" className="btn btn-primary btn-lg mt-8 inline-flex items-center gap-2 font-bold shadow-xl hover:scale-105 transition-transform">
                 Crear mi menú gratis <ArrowUpRightIcon />
               </Link>
             </div>
