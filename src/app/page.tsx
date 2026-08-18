@@ -68,16 +68,64 @@ export default function LandingPage() {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    'name': 'Kitcho Menu',
-    'applicationCategory': 'BusinessApplication',
-    'operatingSystem': 'Web',
-    'offers': {
-      '@type': 'Offer',
-      'price': '0',
-      'priceCurrency': 'EUR',
-    },
-    'description': 'Plataforma SaaS de cartas digitales QR para restaurantes con múltiples cartas, alérgenos, fotos WebP, tasa BCV y doble moneda.',
+    '@graph': [
+      {
+        '@type': 'SoftwareApplication',
+        'name': 'Kitcho Menu',
+        'applicationCategory': 'BusinessApplication',
+        'operatingSystem': 'All (Web App / Cloud SaaS)',
+        'offers': {
+          '@type': 'Offer',
+          'price': '100.00',
+          'priceCurrency': 'USD',
+          'priceValidUntil': '2027-12-31',
+          'availability': 'https://schema.org/InStock',
+          'description': 'Plan Anual VIP Kitcho Menu con sincronización BCV y Diseñador A5',
+        },
+        'aggregateRating': {
+          '@type': 'AggregateRating',
+          'ratingValue': '4.9',
+          'reviewCount': '48',
+        },
+      },
+      {
+        '@type': 'FAQPage',
+        'mainEntity': [
+          {
+            '@type': 'Question',
+            'name': '¿Cómo se actualiza la tasa del dólar en el menú?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Kitcho Menu se conecta en tiempo real con la tasa oficial del Banco Central de Venezuela (BCV), actualizando automáticamente los precios en Bolívares sin que tengas que modificarlos a mano.',
+            },
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Cuánto tiempo toma digitalizar mi menú físico?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Gracias a nuestro motor de IA integrado (Google Gemini Flash), solo debes tomarle una foto o subir el PDF de tu carta actual y el sistema la estructura en menos de 30 segundos.',
+            },
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Cómo imprimo los códigos QR para las mesas?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Kitcho incluye un diseñador integrado que genera habladores de mesa en formato A5 en alta definición (300 DPI) con tu logo y colores corporativos, listos para enviar a la imprenta o colocar en soportes acrílicos.',
+            },
+          },
+          {
+            '@type': 'Question',
+            'name': '¿Qué métodos de pago aceptan para la suscripción?',
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': 'Aceptamos Pago Móvil (a tasa oficial BCV), Zelle, Binance Pay (USDT) y tarjetas de débito/crédito internacionales.',
+            },
+          },
+        ],
+      },
+    ],
   };
 
   return (
@@ -110,12 +158,12 @@ export default function LandingPage() {
                 <span>Plataforma de Menús Digitales QR de Nueva Generación</span>
               </div>
 
-              <h1 className="hero-anim display max-w-xl text-[clamp(3.2rem,7.5vw,5.5rem)] text-[var(--kitcho-charcoal)] leading-[1.05]">
-                La carta digital que <em className="text-[var(--kitcho-orange)]">vende por ti.</em>
+              <h1 className="hero-anim display max-w-xl text-[clamp(2.8rem,6.5vw,4.5rem)] text-[var(--kitcho-charcoal)] leading-[1.05]">
+                El Menú Digital QR con IA y Tasa BCV que <em className="text-[var(--kitcho-orange)]">multiplica las ventas de tu restaurante en Venezuela.</em>
               </h1>
 
               <p className="hero-anim mt-7 max-w-xl text-lg leading-8 text-[var(--text-secondary)] sm:text-xl">
-                Fotografías de platos en WebP, Galería Destacada animada, Tasa Oficial BCV automatizada, Doble Moneda ($ / Bs / €) y traducción con IA en 6 idiomas.
+                Crea tu carta digital interactiva en 30 segundos con IA. Actualización automática de Tasa BCV, doble moneda ($/Bs), habladores A5 y 15 días gratis sin tarjeta.
               </p>
 
               <div className="hero-anim mt-8 flex flex-col gap-3 sm:flex-row">
@@ -200,8 +248,8 @@ export default function LandingPage() {
             <ol className="grid gap-5">
               {[
                 ['01', 'Crea tu cuenta', 'Regístrate en 30 segundos con el nombre y la región de tu restaurante.'],
-                ['02', 'Sube tus platos y fotos', 'Añade fotografías optimizadas WebP y configura el precio en $ / Bs / €.'],
-                ['03', 'Publica tu código QR', 'Imprime tu código QR para la mesa y permite que tus clientes disfruten una experiencia visual impecable.'],
+                ['02', 'Carga Mágica con IA', 'Tómale una foto a tu menú físico o PDF y nuestra IA Gemini lo digitaliza y estructura por ti en solo 30 segundos.'],
+                ['03', 'Imprime tus Habladores A5', 'El diseñador integrado genera tus carteles QR en alta resolución listos para imprimir y exhibir en las mesas.'],
               ].map(([number, title, description]) => (
                 <li key={number} className="grid grid-cols-[3rem_1fr] gap-4 border-t border-white/15 py-5 first:border-t-0 first:pt-0">
                   <span className="font-mono text-sm font-bold text-[#facc15]">{number}</span>
@@ -215,8 +263,136 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Sección de Precios */}
+        <section id="precios" className="py-20 px-4 max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-orange-600 dark:text-orange-500 font-semibold uppercase tracking-wider text-sm">Planes Transparentes</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-[var(--kitcho-charcoal)] dark:text-white mt-2">Invierte en tu restaurante, ahorra en imprenta.</h2>
+            <p className="text-[var(--text-secondary)] dark:text-slate-400 mt-3 max-w-xl mx-auto">Elige el plan que mejor se adapte a tu local. Cancela cuando quieras o aprovecha la Oferta VIP de Lanzamiento.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Plan Mensual */}
+            <div className="bg-white border border-[var(--border)] rounded-2xl p-8 flex flex-col justify-between shadow-sm">
+              <div>
+                <h3 className="text-xl font-bold text-[var(--kitcho-charcoal)]">Plan Mensual Flex</h3>
+                <p className="text-[var(--text-secondary)] text-sm mt-1">Ideal para probar mes a mes sin compromisos.</p>
+                <div className="mt-6 flex items-baseline">
+                  <span className="text-4xl font-extrabold text-[var(--kitcho-charcoal)]">$10</span>
+                  <span className="text-[var(--text-secondary)] ml-2">USD / mes</span>
+                </div>
+                <ul className="mt-6 space-y-3 text-sm text-[var(--text-secondary)] font-medium">
+                  <li className="flex items-center">✓ Menú QR digital ilimitado</li>
+                  <li className="flex items-center">✓ Sincronización Tasa BCV automática</li>
+                  <li className="flex items-center">✓ Fotos comprimidas en WebP</li>
+                  <li className="flex items-center">✓ 14 Alérgenos y 6 Idiomas</li>
+                </ul>
+              </div>
+              <Link href="/register" className="mt-8 block text-center py-3 px-6 rounded-xl border border-[var(--border-strong)] text-[var(--kitcho-charcoal)] font-bold hover:bg-[var(--kitcho-gray)] transition shadow-sm">
+                Empezar 15 días gratis
+              </Link>
+            </div>
+
+            {/* Plan Anual VIP (Destacado) */}
+            <div className="bg-gradient-to-b from-[#3a1505] to-[#1a202c] border-2 border-orange-500 rounded-2xl p-8 flex flex-col justify-between relative shadow-2xl shadow-orange-500/10">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-600 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider py-1 px-4 rounded-full whitespace-nowrap">
+                🔥 Oferta VIP Lanzamiento Venezuela
+              </div>
+              <div>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <h3 className="text-xl font-bold text-white">Plan Anual VIP</h3>
+                  <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">Ahorras $20 + 5 Bonos</span>
+                </div>
+                <p className="text-slate-400 text-sm mt-1">El plan preferido por restaurantes de éxito.</p>
+                <div className="mt-6 flex items-baseline flex-wrap gap-2">
+                  <span className="text-5xl font-extrabold text-white">$100</span>
+                  <span className="text-slate-400">USD / año</span>
+                  <span className="text-xs text-orange-400 font-bold">($8.33/mes)</span>
+                </div>
+                
+                {/* Stack de Bonos */}
+                <div className="mt-6 pt-5 border-t border-slate-700/50">
+                  <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-3">🎁 STACK DE BONOS VIP INCLUIDOS:</p>
+                  <ul className="space-y-3 text-sm text-slate-200">
+                    <li className="flex items-start gap-2"><span>✨</span> <span><strong>Bono 1:</strong> Digitalización asistida con IA de tu carta actual.</span></li>
+                    <li className="flex items-start gap-2"><span>🎨</span> <span><strong>Bono 2:</strong> Diseñador y descarga de Habladores A5 HD.</span></li>
+                    <li className="flex items-start gap-2"><span>🇻🇪</span> <span><strong>Bono 3:</strong> Módulo BCV Auto-Sync en tiempo real.</span></li>
+                    <li className="flex items-start gap-2"><span>🔒</span> <span><strong>Bono 4:</strong> Congelamiento de tarifa por 2 años.</span></li>
+                    <li className="flex items-start gap-2"><span>💬</span> <span><strong>Bono 5:</strong> Soporte prioritario directo por WhatsApp.</span></li>
+                  </ul>
+                </div>
+              </div>
+              <Link href="/register?plan=vip-annual" className="mt-8 block text-center py-3.5 px-6 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition shadow-lg shadow-orange-600/30">
+                Reclamar Oferta VIP $100/Año
+              </Link>
+            </div>
+          </div>
+          
+          <div className="text-center mt-10 p-4 rounded-xl bg-white/50 border border-[var(--border)] max-w-2xl mx-auto shadow-sm">
+            <p className="text-sm font-bold text-[var(--kitcho-charcoal)] mb-2">Métodos de pago aceptados localmente:</p>
+            <div className="flex flex-wrap justify-center items-center gap-3 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide">
+              <span className="px-3 py-1 rounded bg-green-100 text-green-800 border border-green-200">Pago Móvil (Tasa BCV)</span>
+              <span className="px-3 py-1 rounded bg-[#f4e7ff] text-[#5c2499] border border-[#d6bbf0]">Zelle</span>
+              <span className="px-3 py-1 rounded bg-[#fff8e1] text-[#f3ba2f] border border-[#ffe082]">Binance Pay</span>
+              <span className="px-3 py-1 rounded bg-blue-50 text-blue-800 border border-blue-200">Tarjetas Int.</span>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="bg-white py-20 sm:py-28">
+          <div className="container max-w-4xl">
+            <div className="text-center mb-12">
+              <span className="eyebrow justify-center">Dudas Frecuentes</span>
+              <h2 className="display text-3xl sm:text-5xl text-[var(--kitcho-charcoal)] mt-4">Todo lo que necesitas saber</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <details className="group rounded-2xl border border-[var(--border)] bg-[#fcfcfa] p-6 open:bg-white open:shadow-md transition-all">
+                <summary className="flex cursor-pointer items-center justify-between text-lg font-bold text-[var(--kitcho-charcoal)] outline-none">
+                  ¿Cómo se actualiza la tasa del dólar en el menú?
+                  <span className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] pr-8">
+                  Kitcho Menu se conecta en tiempo real con la tasa oficial del Banco Central de Venezuela (BCV), actualizando automáticamente todos tus precios en Bolívares. Tú configuras tus precios en USD y la app hace el cálculo en vivo, mostrándolos en doble moneda ($/Bs).
+                </p>
+              </details>
+
+              <details className="group rounded-2xl border border-[var(--border)] bg-[#fcfcfa] p-6 open:bg-white open:shadow-md transition-all">
+                <summary className="flex cursor-pointer items-center justify-between text-lg font-bold text-[var(--kitcho-charcoal)] outline-none">
+                  ¿Cuánto tiempo toma digitalizar mi menú físico?
+                  <span className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] pr-8">
+                  Gracias a nuestro motor de IA integrado (Google Gemini Flash), solo debes tomarle una foto o subir el PDF de tu carta actual y el sistema la transcribe y estructura automáticamente en menos de 30 segundos. ¡Adiós a teclear plato por plato!
+                </p>
+              </details>
+
+              <details className="group rounded-2xl border border-[var(--border)] bg-[#fcfcfa] p-6 open:bg-white open:shadow-md transition-all">
+                <summary className="flex cursor-pointer items-center justify-between text-lg font-bold text-[var(--kitcho-charcoal)] outline-none">
+                  ¿Cómo imprimo los códigos QR para mis mesas?
+                  <span className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] pr-8">
+                  El panel de administración cuenta con un diseñador integrado que genera habladores de mesa (formato A5 o tarjeta de visita) en alta definición (300 DPI) listos para llevar a la imprenta, ya personalizados con tu logo y tu color corporativo.
+                </p>
+              </details>
+
+              <details className="group rounded-2xl border border-[var(--border)] bg-[#fcfcfa] p-6 open:bg-white open:shadow-md transition-all">
+                <summary className="flex cursor-pointer items-center justify-between text-lg font-bold text-[var(--kitcho-charcoal)] outline-none">
+                  ¿Qué métodos de pago aceptan para suscribirme?
+                  <span className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 text-base leading-7 text-[var(--text-secondary)] pr-8">
+                  Pensando 100% en el mercado nacional e internacional, aceptamos Pago Móvil (a tasa oficial BCV del día), Zelle, Binance Pay (USDT) y pago tradicional con tarjetas de débito o crédito Visa/Mastercard.
+                </p>
+              </details>
+            </div>
+          </div>
+        </section>
+
         {/* CTA final */}
-        <section className="bg-[#f7f7f4] py-20 sm:py-28">
+        <section className="bg-[#f7f7f4] py-20 sm:py-28 relative">
           <div className="container">
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#172033] via-[#1e2a42] to-[#ea580c] px-6 py-12 text-center text-white sm:px-12 sm:py-16 shadow-2xl border border-slate-700/50">
               <div className="pointer-events-none absolute inset-0 opacity-25" style={{ backgroundImage: 'radial-gradient(circle at 90% 10%, #ea580c, transparent 50%)' }} />
@@ -233,10 +409,30 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Sticky Bottom Action en Móvil */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-3 backdrop-blur-xl md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <Link href="/register?plan=vip-annual" className="btn btn-primary w-full font-bold shadow-md h-12 text-[15px] bg-orange-600 hover:bg-orange-700 border-orange-600">
+            Crear Menú Gratis (15 Días) <ArrowUpRightIcon />
+          </Link>
+        </div>
+
+        {/* Botón flotante de WhatsApp */}
+        <a
+          href="https://wa.me/584140000000?text=Hola,%20quiero%20más%20información%20sobre%20el%20Plan%20VIP%20de%20Kitcho%20Menu."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-[4.5rem] md:bottom-6 right-4 md:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_24px_rgba(37,211,102,0.4)] transition-transform hover:scale-110"
+          aria-label="Hablar con un Asesor VIP por WhatsApp"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
+        </a>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--border)] bg-white py-8">
+      <footer className="border-t border-[var(--border)] bg-white py-8 pb-20 md:pb-8">
         <div className="container flex flex-col items-center justify-between gap-4 text-sm text-[var(--text-secondary)] sm:flex-row">
           <BrandMark compact />
           <p>Kitcho Menu · Plataforma de cartas digitales para restaurantes.</p>

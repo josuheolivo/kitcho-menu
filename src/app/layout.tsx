@@ -16,23 +16,32 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kitcho-menu.vercel.app'),
-  title: 'Kitcho Menu — Menú Digital para Restaurantes',
-  description: 'Crea tu menú digital profesional en minutos. Múltiples cartas, 6 idiomas, alérgenos y tasa BCV.',
+  title: 'Kitcho Menu | Menú Digital QR con IA y Tasa BCV para Restaurantes',
+  description: 'Crea el menú QR interactivo de tu restaurante en 30 segundos con IA. Sincronización automática de Tasa BCV, doble moneda ($/Bs) y habladores de mesa A5. Prueba 15 días gratis.',
+  keywords: [
+    "menú digital venezuela",
+    "carta qr restaurantes caracas",
+    "menú qr tasa bcv",
+    "software para restaurantes venezuela",
+    "habladores de mesa qr a5",
+    "carta digital doble moneda",
+    "menú interactivo valencia lecheria"
+  ],
   alternates: {
     canonical: 'https://kitcho-menu.vercel.app',
   },
   openGraph: {
-    title: 'Kitcho Menu — Menú Digital para Restaurantes',
-    description: 'Crea tu menú digital profesional en minutos. Múltiples cartas, 6 idiomas, alérgenos y tasa BCV.',
+    title: 'Kitcho Menu · La carta digital interactiva que vende por ti',
+    description: 'Sube la foto de tu menú físico y la IA lo digitaliza en 30 segundos con tasa BCV automática.',
     url: 'https://kitcho-menu.vercel.app',
     siteName: 'Kitcho Menu',
-    locale: 'es_ES',
+    locale: 'es_VE',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kitcho Menu — Menú Digital para Restaurantes',
-    description: 'Crea tu menú digital profesional en minutos.',
+    title: 'Kitcho Menu | Menú Digital QR con Tasa BCV',
+    description: 'Digitaliza tu carta con IA en 30s. Sincronización automática de tasa BCV en Venezuela.',
   },
   icons: {
     icon: '/icon.svg',
