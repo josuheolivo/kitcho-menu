@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MenuData, Translatable, ALLERGENS, ensureMenuStructure, MenuItem } from '@/lib/types';
 import BrandMark from '@/components/BrandMark';
 import { GlobeIcon, SparkIcon } from '@/components/Icons';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
 interface MenuPublicProps {
   menu: MenuData;
@@ -97,8 +99,23 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
   const showName = menu.showName !== false;
   const primaryColor = menu.primaryColor || '#ea580c';
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!containerRef.current) return;
+    gsap.from(containerRef.current.querySelectorAll('.gsap-animate-card'), {
+      y: 16,
+      autoAlpha: 0,
+      stagger: 0.04,
+      duration: 0.4,
+      ease: 'power2.out',
+      clearProps: 'all',
+    });
+  }, { scope: containerRef, dependencies: [selectedMenuId, lang] });
+
   return (
     <div
+      ref={containerRef}
       className={`min-h-screen pb-20 transition-colors duration-300 ${
         isDark ? 'bg-slate-950 text-slate-100' : 'bg-[#f7f7f4] text-[var(--kitcho-charcoal)]'
       }`}
@@ -163,25 +180,18 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
             : 'border-[var(--border)] bg-[#f7f7f4]/95 text-[var(--kitcho-charcoal)]'
         }`}
       >
-        <div className="container flex min-h-14 flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
-          <div className="flex items-center justify-between gap-3">
-            {enableMultilingual && (
-              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[.1em] text-[var(--text-secondary)]">
-                <GlobeIcon className="h-4 w-4" />
-                Idioma
-              </span>
-            )}
-
-            {/* Selector de preferencia de moneda en Venezuela */}
-            {isVenezuela && (
-              <div className="flex items-center gap-1 bg-white/70 dark:bg-slate-900/80 rounded-lg p-1 text-[11px] font-bold border border-slate-200 dark:border-slate-800">
+        <div className="container flex flex-col gap-2.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-2">
+          <div className="flex items-center justify-between gap-2.5 w-full sm:w-auto">
+            {/* Control de Moneda si aplica */}
+            {isVenezuela ? (
+              <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/90 rounded-xl p-1 text-[11px] font-bold border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
                 <button
                   type="button"
                   onClick={() => setCurrencyMode('both')}
-                  className={`px-2 py-1 rounded-md transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg transition-colors ${
                     currencyMode === 'both'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900'
+                      ? 'bg-amber-500 text-white shadow-sm font-extrabold'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
                   $ / Bs
@@ -189,34 +199,39 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                 <button
                   type="button"
                   onClick={() => setCurrencyMode('usd')}
-                  className={`px-2 py-1 rounded-md transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg transition-colors ${
                     currencyMode === 'usd'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900'
+                      ? 'bg-amber-500 text-white shadow-sm font-extrabold'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  Solo $
+                  $
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrencyMode('ves')}
-                  className={`px-2 py-1 rounded-md transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg transition-colors ${
                     currencyMode === 'ves'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900'
+                      ? 'bg-amber-500 text-white shadow-sm font-extrabold'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  Solo Bs
+                  Bs
                 </button>
               </div>
-            )}
+            ) : enableMultilingual ? (
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[.1em] text-[var(--text-secondary)]">
+                <GlobeIcon className="h-4 w-4 text-[var(--kitcho-orange)]" />
+                Idioma
+              </span>
+            ) : null}
 
             {/* Dark mode switch */}
             <button
               type="button"
               onClick={() => setIsDark((prev) => !prev)}
-              className={`rounded-full p-2 text-xs font-bold transition-colors ${
-                isDark ? 'bg-slate-800 text-yellow-300' : 'bg-white text-slate-700 shadow-sm'
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all shrink-0 ${
+                isDark ? 'bg-slate-800 text-yellow-300 border border-slate-700' : 'bg-white text-slate-700 shadow-sm border border-slate-200'
               }`}
               title={isDark ? 'Modo Claro' : 'Modo Oscuro'}
             >
@@ -226,7 +241,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
 
           {/* Language selector (solo si enableMultilingual === true) */}
           {enableMultilingual && (
-            <div className="flex flex-1 justify-center gap-1 overflow-x-auto py-1 sm:flex-none sm:justify-start">
+            <div className="flex w-full items-center gap-1 overflow-x-auto no-scrollbar py-0.5 sm:w-auto shrink-0">
               {languages.map((language) => (
                 <button
                   key={language.code}
@@ -234,9 +249,9 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                   onClick={() => setLang(language.code)}
                   aria-label={`Ver menú en ${language.name}`}
                   aria-pressed={lang === language.code}
-                  className={`language-button min-h-9 rounded-lg px-2.5 text-xs font-bold transition-colors ${
+                  className={`language-button shrink-0 min-h-8 rounded-lg px-2.5 text-xs font-bold transition-colors ${
                     lang === language.code
-                      ? 'text-white'
+                      ? 'text-white shadow-sm'
                       : isDark
                       ? 'text-slate-400 hover:bg-slate-800 hover:text-white'
                       : 'text-[var(--text-secondary)] hover:bg-white hover:text-[var(--kitcho-charcoal)]'
@@ -256,8 +271,8 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
 
         {/* Multi-menu Collection Tabs (if > 1 active collection) */}
         {activeMenus.length > 1 && (
-          <div className="border-t border-[var(--border)] dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-2">
-            <div className="container flex justify-center gap-2 overflow-x-auto">
+          <div className="border-t border-[var(--border)] dark:border-slate-800 bg-white/40 dark:bg-slate-900/60 py-2">
+            <div className="container flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar px-4">
               {activeMenus.map((col) => {
                 const isSelected = col.id === selectedMenuId;
                 return (
@@ -265,12 +280,12 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                     key={col.id}
                     type="button"
                     onClick={() => setSelectedMenuId(col.id)}
-                    className={`rounded-xl px-4 py-2 text-xs font-bold transition-all whitespace-nowrap ${
+                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all whitespace-nowrap ${
                       isSelected
-                        ? 'text-white shadow-sm ring-2 ring-orange-500/20'
+                        ? 'text-white shadow-md ring-2 ring-orange-500/20'
                         : isDark
-                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                        : 'bg-[#f1f2ef] text-[var(--text-secondary)] hover:bg-white'
+                        ? 'bg-slate-800/90 text-slate-300 hover:bg-slate-700'
+                        : 'bg-white/80 text-[var(--text-secondary)] hover:bg-white border border-slate-200/60 shadow-sm'
                     }`}
                     style={
                       isSelected
@@ -361,7 +376,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                         ],
                       })
                     }
-                    className={`card group relative flex flex-col justify-between p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${
+                    className={`card gsap-animate-card group relative flex flex-col justify-between p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${
                       isDark
                         ? '!bg-slate-900 !border-slate-800 hover:!border-slate-700'
                         : 'bg-white hover:border-orange-300'

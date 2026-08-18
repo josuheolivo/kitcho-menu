@@ -37,6 +37,15 @@
 
 html { scroll-behavior: smooth; }
 
+/* Ocultar barra de scroll nativa manteniendo scroll táctil */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 body {
   margin: 0;
   background: var(--bg-primary);

@@ -971,7 +971,7 @@ export default function AdminPanel({
             </div>
 
             {/* Listado de Cartas activas con Switch encender/apagar por carta */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar py-1">
               {menusList.map((col) => {
                 const isActive = col.id === activeMenuId;
                 const isAvailable = col.available !== false;
@@ -979,7 +979,7 @@ export default function AdminPanel({
                 return (
                   <div
                     key={col.id}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-all ${
+                    className={`shrink-0 flex items-center gap-2.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition-all whitespace-nowrap ${
                       isActive
                         ? 'border-[var(--kitcho-orange)] bg-white dark:bg-slate-900 text-[var(--kitcho-charcoal)] dark:text-white shadow-sm ring-2 ring-orange-500/20'
                         : 'border-[var(--border)] dark:border-slate-700 bg-[#f7f7f4] dark:bg-slate-800/80 text-[var(--text-secondary)] dark:text-slate-400'
@@ -988,7 +988,7 @@ export default function AdminPanel({
                     <button
                       type="button"
                       onClick={() => setActiveMenuId(col.id)}
-                      className="text-left font-bold"
+                      className="text-left font-bold whitespace-nowrap"
                     >
                       {col.name[activeLang] || col.name.es || 'Carta sin nombre'}
                     </button>
@@ -1009,7 +1009,7 @@ export default function AdminPanel({
                       <button
                         type="button"
                         onClick={() => removeCollection(col.id)}
-                        className="text-red-500 hover:text-red-700 ml-1"
+                        className="text-red-500 hover:text-red-700 ml-1 font-bold text-sm shrink-0"
                         title="Eliminar esta carta"
                       >
                         ✕
