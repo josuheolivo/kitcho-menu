@@ -170,7 +170,7 @@ export default function LandingPage() {
                 <Link href="/register" className="btn btn-primary btn-lg font-bold group shadow-md">
                   Empieza gratis 15 días <ArrowUpRightIcon className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="#como-funciona" className="btn btn-outline btn-lg font-bold">Ver cómo funciona</Link>
+                <a href="#como-funciona" className="btn btn-outline btn-lg font-bold">Ver cómo funciona</a>
               </div>
 
               <div className="hero-anim mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[var(--text-secondary)]">
