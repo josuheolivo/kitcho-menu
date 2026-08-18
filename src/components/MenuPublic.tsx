@@ -359,24 +359,28 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                     })),
                   })
                 }
-                className="cursor-pointer rounded-2xl border border-amber-300 dark:border-amber-800 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 p-6 text-center shadow-md hover:scale-[1.01] transition-transform animate-fade-in"
+                className={`cursor-pointer rounded-2xl border p-6 text-center shadow-md hover:scale-[1.01] transition-transform animate-fade-in ${
+                  isDark
+                    ? 'border-amber-800/80 bg-slate-900 text-white'
+                    : 'border-amber-300 bg-amber-500/10 text-slate-900'
+                }`}
               >
-                <span className="inline-block rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white mb-2">
+                <span className="inline-block rounded-full bg-amber-500 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white mb-2 shadow-xs">
                   Menú Completo Destacado
                 </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--kitcho-charcoal)] dark:text-white">
+                <h2 className={`text-2xl sm:text-3xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {t(currentCollection.name)}
                 </h2>
-                <p className="mt-2 text-2xl font-bold" style={{ color: primaryColor }}>
+                <p className="mt-2 text-2xl sm:text-3xl font-extrabold" style={{ color: primaryColor }}>
                   {Number(currentCollection.fixedPrice.replace(',', '.')).toLocaleString('es-ES', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}{' '}
-                  € <span className="text-xs font-semibold text-gray-500">/ persona</span>
+                  € <span className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>/ persona</span>
                 </p>
                 <button
                   type="button"
-                  className="mt-4 btn btn-primary btn-sm px-6 font-bold text-white shadow-sm"
+                  className="mt-4 btn btn-primary btn-sm px-6 font-extrabold text-white shadow-sm"
                   style={{ backgroundColor: primaryColor }}
                 >
                   Ver Menú Completo →
@@ -424,10 +428,10 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                           {category.visibleItems.length} platos
                         </span>
                       </div>
-                      <h3 className="text-xl font-bold tracking-tight group-hover:text-[var(--kitcho-orange)]">
+                      <h3 className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'} group-hover:text-[var(--kitcho-orange)]`}>
                         {t(category.name)}
                       </h3>
-                      <p className={`mt-2 text-xs line-clamp-2 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                      <p className={`mt-2 text-xs line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
                         {category.visibleItems.map((i) => t(i.name)).join(' · ')}
                       </p>
                     </div>
@@ -722,7 +726,7 @@ function MenuItemCard({
           <div className="flex items-center gap-2">
             <h4
               className={`text-base font-bold sm:text-lg ${
-                isDark ? 'text-slate-100' : 'text-[var(--kitcho-charcoal)]'
+                isDark ? 'text-slate-100' : 'text-slate-900 font-extrabold'
               }`}
             >
               {name}
@@ -738,7 +742,7 @@ function MenuItemCard({
           {description && (
             <p
               className={`mt-1.5 max-w-xl text-sm leading-6 ${
-                isDark ? 'text-slate-400' : 'text-[var(--text-secondary)]'
+                isDark ? 'text-slate-300' : 'text-slate-700 font-medium'
               }`}
             >
               {description}
@@ -755,8 +759,8 @@ function MenuItemCard({
                     key={allergenId}
                     className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
                       isDark
-                        ? 'bg-slate-800 text-slate-300 border-slate-700'
-                        : 'bg-[#f1f2ef] text-[var(--text-secondary)] border-[var(--border)]'
+                        ? 'bg-slate-800 text-slate-200 border-slate-700'
+                        : 'bg-slate-100 text-slate-800 border-slate-300 font-bold'
                     }`}
                     title={allergen.name}
                   >

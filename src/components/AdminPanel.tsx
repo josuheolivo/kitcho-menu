@@ -1289,7 +1289,7 @@ function CategoryEditor({
             type="text"
             value={category.name[activeLang] || ''}
             onChange={(event) => onUpdateName(category.id, event.target.value)}
-            className="w-full border-0 bg-transparent p-0 text-lg font-bold outline-none placeholder:text-[var(--kitcho-gray-dark)] focus:ring-0 dark:text-white"
+            className="w-full border-0 bg-transparent p-0 text-lg font-extrabold text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:ring-0"
             placeholder="Nombre de la categoría"
           />
         </div>
@@ -1388,7 +1388,7 @@ function ItemEditor({
               type="text"
               value={item.name[activeLang] || ''}
               onChange={(event) => onUpdate(categoryId, item.id, 'name', event.target.value)}
-              className="input !min-h-10 !py-2 text-sm font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+              className="input !min-h-10 !py-2 text-sm font-bold text-slate-900 bg-white border-slate-300 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
               placeholder="Nombre del plato"
             />
             {!isAvailable && (
@@ -1402,13 +1402,13 @@ function ItemEditor({
             type="text"
             value={item.description[activeLang] || ''}
             onChange={(event) => onUpdate(categoryId, item.id, 'description', event.target.value)}
-            className="input !min-h-10 !py-2 text-sm dark:!bg-slate-900 dark:!border-slate-700 dark:!text-slate-300"
+            className="input !min-h-10 !py-2 text-sm text-slate-800 bg-white border-slate-300 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-slate-300"
             placeholder="Descripción opcional"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-bold text-[var(--text-secondary)] dark:text-slate-400" htmlFor={`item-price-${item.id}`}>
+          <label className="mb-2 block text-xs font-extrabold text-slate-800 dark:text-slate-300" htmlFor={`item-price-${item.id}`}>
             {isVenezuela ? 'Precio ($)' : 'Precio (€)'}
           </label>
           <input
@@ -1417,7 +1417,7 @@ function ItemEditor({
             type="text"
             value={item.price}
             onChange={(event) => onUpdate(categoryId, item.id, 'price', event.target.value)}
-            className="input !min-h-10 !py-2 text-center text-sm font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+            className="input !min-h-10 !py-2 text-center text-sm font-extrabold text-slate-900 bg-white border-slate-300 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
             placeholder="0,00"
           />
           {isVenezuela && bcvRate && Number(item.price.replace(',', '.')) > 0 && (
@@ -1563,11 +1563,11 @@ function FeaturedGalleryEditor({
         <div>
           <div className="flex items-center gap-2">
             <span className="text-lg">🌟</span>
-            <h3 className="text-lg font-bold text-[var(--kitcho-charcoal)] dark:text-white">
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
               Galería Destacada de Platos ({gallery.length}/15 fotos)
             </h3>
           </div>
-          <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-700 font-medium dark:text-slate-400 mt-0.5">
             Muestra tus platillos estrella en un carrusel animado en la parte superior del menú.
           </p>
         </div>
@@ -1582,7 +1582,7 @@ function FeaturedGalleryEditor({
       </div>
 
       {gallery.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] dark:border-slate-700 p-6 text-center text-xs text-[var(--text-secondary)] dark:text-slate-400">
+        <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-xs font-medium text-slate-700 dark:text-slate-400">
           No hay platos en la galería destacada. Pulsa en "+ Añadir foto destacada" para crear el primero.
         </div>
       ) : (
@@ -1590,7 +1590,7 @@ function FeaturedGalleryEditor({
           {gallery.map((item, idx) => (
             <div
               key={item.id}
-              className="rounded-xl border border-[var(--border)] dark:border-slate-700 bg-[#fcfcfa] dark:bg-slate-900/60 p-3 space-y-2.5 relative group"
+              className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/60 p-3 space-y-2.5 relative group shadow-xs"
             >
               {/* Imagen y Controles de Subida */}
               <div className="relative h-36 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -1635,14 +1635,14 @@ function FeaturedGalleryEditor({
                   type="text"
                   value={item.title[activeLang] || ''}
                   onChange={(e) => onUpdate(item.id, 'title', e.target.value)}
-                  className="input !min-h-9 !py-1 text-xs font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                  className="input !min-h-9 !py-1 text-xs font-bold text-slate-900 bg-white border-slate-300 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
                   placeholder="Título plato"
                 />
                 <input
                   type="text"
                   value={item.price || ''}
                   onChange={(e) => onUpdate(item.id, 'price', e.target.value)}
-                  className="input !min-h-9 !py-1 text-center text-xs font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                  className="input !min-h-9 !py-1 text-center text-xs font-extrabold text-slate-900 bg-white border-slate-300 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
                   placeholder="Precio ($/€)"
                 />
               </div>
@@ -1652,7 +1652,7 @@ function FeaturedGalleryEditor({
                 type="text"
                 value={item.description[activeLang] || ''}
                 onChange={(e) => onUpdate(item.id, 'description', e.target.value)}
-                className="input !min-h-8 !py-1 text-xs dark:!bg-slate-900 dark:!border-slate-700 dark:!text-slate-300"
+                className="input !min-h-8 !py-1 text-xs text-slate-800 bg-white border-slate-300 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-slate-300"
                 placeholder="Descripción breve opcional"
               />
 
