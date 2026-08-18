@@ -6,6 +6,8 @@ import BrandMark from '@/components/BrandMark';
 import { GlobeIcon, SparkIcon } from '@/components/Icons';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { StickyCategoryNav } from './StickyCategoryNav';
+import { ViralFooterBadge } from './ViralFooterBadge';
 
 interface MenuPublicProps {
   menu: MenuData;
@@ -416,61 +418,56 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
               </div>
             )}
 
-            {/* Grid de Secciones y Cartas Individuales (Recuadros) */}
-            <div>
-              <p className="eyebrow mb-4">Selecciona una sección para ver sus platos</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {visibleCategories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() =>
-                      setActiveModal({
-                        type: 'category',
-                        title: category.name,
-                        categories: [
-                          {
-                            id: category.id,
-                            name: category.name,
-                            items: category.visibleItems,
-                          },
-                        ],
-                      })
-                    }
-                    className={`card gsap-animate-card group relative flex flex-col justify-between p-6 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${
-                      isDark
-                        ? '!bg-slate-900 !border-slate-800 hover:!border-slate-700'
-                        : 'bg-white hover:border-orange-300'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: primaryColor }}
-                        />
-                        <span
-                          className="badge text-white font-bold text-xs"
-                          style={{ backgroundColor: primaryColor }}
-                        >
-                          {category.visibleItems.length} platos
-                        </span>
-                      </div>
-                      <h3 className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'} group-hover:text-[var(--kitcho-orange)]`}>
-                        {t(category.name)}
-                      </h3>
-                      <p className={`mt-2 text-xs line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-600 font-medium'}`}>
-                        {category.visibleItems.map((i) => t(i.name)).join(' · ')}
-                      </p>
-                    </div>
+            {/* Barra Fija de Categorías */}
+            <div className="-mx-5 sm:mx-0 mb-6">
+              <StickyCategoryNav 
+                categories={visibleCategories.map(c => ({ id: c.id, name: t(c.name) }))} 
+                primaryColor={primaryColor} 
+              />
+            </div>
 
-                    <div className="mt-6 flex items-center justify-between text-xs font-bold" style={{ color: primaryColor }}>
-                      <span>Ver sección</span>
-                      <span className="transition-transform group-hover:translate-x-1">→</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+            {/* Listado Secuencial de Categorías y Platos */}
+            <div className="space-y-12">
+              {visibleCategories.map((category) => (
+                <div key={category.id} id={`category-${category.id}`} className="scroll-mt-32">
+                  <div className="flex items-center gap-3 mb-6 border-b pb-2 dark:border-slate-800">
+                    <h3 className="text-2xl font-extrabold tracking-tight" style={{ color: primaryColor }}>
+                      {t(category.name)}
+                    </h3>
+                    <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                  <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+                    {category.visibleItems.map((item) => (
+                      <MenuItemCard
+                        key={item.id}
+                        name={t(item.name)}
+                        description={t(item.description)}
+                        price={item.price}
+                        imageUrl={item.imageUrl}
+                        allergens={item.allergens}
+                        available={item.available !== false}
+                        primaryColor={primaryColor}
+                        isDark={isDark}
+                        isVenezuela={isVenezuela}
+                        bcvRate={bcvRate}
+                        currencyMode={currencyMode}
+                        currencySymbol={currencySymbol}
+                        onPreviewImage={
+                          item.imageUrl
+                            ? () =>
+                                setSelectedImageModal({
+                                  url: item.imageUrl!,
+                                  title: t(item.name),
+                                  description: t(item.description),
+                                  price: item.price,
+                                })
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Leyenda Informativa de Alérgenos (Reglamento UE 1169/2011) */}
@@ -616,7 +613,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
         </div>
       )}
 
-      {/* Modal de Imagen Ampliada en Alta ResoluciÃ³n */}
+      {/* Modal de Imagen Ampliada en Alta Resolución */}
       {selectedImageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
@@ -664,6 +661,9 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
           </div>
         </div>
       )}
+
+      {/* Badge Viral B2B */}
+      <ViralFooterBadge primaryColor={primaryColor} />
 
       {/* Page Footer */}
       <footer
