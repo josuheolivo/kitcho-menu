@@ -161,7 +161,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
             />
           )}
 
-          <h1 className="display text-3xl sm:text-5xl font-extrabold text-white">
+          <h1 className={`display text-3xl sm:text-5xl font-extrabold text-white ${!showName ? 'sr-only' : 'mt-2'}`}>
             {menuTitle}
           </h1>
 
