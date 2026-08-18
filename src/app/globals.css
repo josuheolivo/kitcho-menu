@@ -128,6 +128,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .animate-float { animation: float 4s ease-in-out infinite; }
 .animate-pulse-subtle { animation: pulseSubtle 2.5s ease-in-out infinite; }
 
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-progress { animation: progress linear forwards; }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { border: 2px solid var(--kitcho-gray); border-radius: 999px; background: #c5c9c1; }

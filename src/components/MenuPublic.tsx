@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { MenuData, Translatable, ALLERGENS, ensureMenuStructure, MenuItem } from '@/lib/types';
+import { MenuData, Translatable, ALLERGENS, ensureMenuStructure, MenuItem, GalleryItem } from '@/lib/types';
 import BrandMark from '@/components/BrandMark';
 import { GlobeIcon, SparkIcon } from '@/components/Icons';
 import gsap from 'gsap';
@@ -67,6 +67,14 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
       name: Translatable;
       items: MenuItem[];
     }[];
+  } | null>(null);
+
+  // Modal para ver foto de plato o galería ampliada
+  const [selectedImageModal, setSelectedImageModal] = useState<{
+    url: string;
+    title: string;
+    description?: string;
+    price?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -314,6 +322,27 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
           <EmptyState primaryColor={primaryColor} isDark={isDark} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-10">
+            {/* Galería Destacada del Chef (GSAP Hero Carousel) */}
+            {menu.featuredGallery && menu.featuredGallery.length > 0 && (
+              <FeaturedGalleryHero
+                items={menu.featuredGallery}
+                lang={lang}
+                primaryColor={primaryColor}
+                isDark={isDark}
+                isVenezuela={isVenezuela}
+                bcvRate={bcvRate}
+                currencySymbol={currencySymbol}
+                onSelectImage={(item) =>
+                  setSelectedImageModal({
+                    url: item.imageUrl,
+                    title: t(item.title),
+                    description: t(item.description),
+                    price: item.price,
+                  })
+                }
+              />
+            )}
+
             {/* Banner de Precio Fijo Global si aplica */}
             {currentCollection?.hasFixedPrice && currentCollection.fixedPrice && (
               <div
@@ -510,6 +539,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                         name={t(item.name)}
                         description={t(item.description)}
                         price={item.price}
+                        imageUrl={item.imageUrl}
                         allergens={item.allergens}
                         available={item.available !== false}
                         primaryColor={primaryColor}
@@ -518,6 +548,17 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                         bcvRate={bcvRate}
                         currencyMode={currencyMode}
                         currencySymbol={currencySymbol}
+                        onPreviewImage={
+                          item.imageUrl
+                            ? () =>
+                                setSelectedImageModal({
+                                  url: item.imageUrl!,
+                                  title: t(item.name),
+                                  description: t(item.description),
+                                  price: item.price,
+                                })
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -537,6 +578,55 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                 className="btn btn-outline btn-sm w-full sm:w-auto font-bold dark:!bg-slate-800 dark:!border-slate-700 dark:!text-white"
               >
                 Cerrar y ver otras secciones
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Imagen Ampliada en Alta ResoluciÃ³n */}
+      {selectedImageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+            <div className="relative h-64 sm:h-80 w-full bg-black">
+              <img src={selectedImageModal.url} alt={selectedImageModal.title} className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setSelectedImageModal(null)}
+                className="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white font-bold backdrop-blur-md hover:bg-black/80 transition-colors shadow-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <h3 className="text-xl font-extrabold text-[var(--kitcho-charcoal)] dark:text-white">
+                  {selectedImageModal.title}
+                </h3>
+                {selectedImageModal.price && (
+                  <span
+                    className="shrink-0 rounded-xl px-3 py-1 text-sm font-extrabold shadow-sm"
+                    style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                  >
+                    {selectedImageModal.price}
+                  </span>
+                )}
+              </div>
+
+              {selectedImageModal.description && (
+                <p className="text-sm leading-6 text-[var(--text-secondary)] dark:text-slate-300">
+                  {selectedImageModal.description}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setSelectedImageModal(null)}
+                className="btn btn-primary w-full mt-2 font-bold text-white shadow-md"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Cerrar vista previa
               </button>
             </div>
           </div>
@@ -572,6 +662,7 @@ function MenuItemCard({
   name,
   description,
   price,
+  imageUrl,
   allergens,
   available,
   primaryColor,
@@ -580,10 +671,12 @@ function MenuItemCard({
   bcvRate,
   currencyMode,
   currencySymbol,
+  onPreviewImage,
 }: {
   name: string;
   description: string;
   price: string;
+  imageUrl?: string;
   allergens?: string[];
   available: boolean;
   primaryColor: string;
@@ -592,6 +685,7 @@ function MenuItemCard({
   bcvRate?: number | null;
   currencyMode?: 'both' | 'usd' | 'ves';
   currencySymbol?: string;
+  onPreviewImage?: () => void;
 }) {
   const parsedPrice = Number(price.replace(',', '.'));
   const hasPrice = price.trim() !== '' && Number.isFinite(parsedPrice) && parsedPrice > 0;
@@ -611,7 +705,19 @@ function MenuItemCard({
         isDark ? '!bg-slate-900 !border-slate-800' : ''
       } ${!available ? 'opacity-60 grayscale-[40%]' : ''}`}
     >
-      <div className="flex items-start justify-between gap-5">
+      <div className="flex items-start gap-4 sm:gap-5 justify-between">
+        {/* Foto miniatura del plato si existe */}
+        {imageUrl && (
+          <div
+            onClick={onPreviewImage}
+            className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm cursor-pointer group-hover:scale-105 transition-transform"
+          >
+            <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center text-white text-xs font-bold">
+              🔍
+            </div>
+          </div>
+        )}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h4
@@ -709,6 +815,173 @@ function EmptyState({ primaryColor, isDark }: { primaryColor: string; isDark: bo
       <p className={`mt-2 leading-7 ${isDark ? 'text-slate-400' : 'text-[var(--text-secondary)]'}`}>
         Este restaurante está terminando de preparar su carta. Vuelve pronto.
       </p>
+    </div>
+  );
+}
+
+interface FeaturedGalleryHeroProps {
+  items: GalleryItem[];
+  lang: Language;
+  primaryColor: string;
+  isDark: boolean;
+  isVenezuela?: boolean;
+  bcvRate?: number | null;
+  currencySymbol?: string;
+  onSelectImage: (item: GalleryItem) => void;
+}
+
+function FeaturedGalleryHero({
+  items,
+  lang,
+  primaryColor,
+  isDark,
+  isVenezuela,
+  bcvRate,
+  currencySymbol,
+  onSelectImage,
+}: FeaturedGalleryHeroProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const t = (text: Translatable | string | undefined) =>
+    !text ? '' : typeof text === 'string' ? text : text[lang] || text.es || text.en || '';
+
+  const activeItem = items[currentIndex] || items[0];
+
+  // GSAP Ken Burns and fade transition effect
+  useGSAP(() => {
+    if (!imageRef.current) return;
+    gsap.fromTo(
+      imageRef.current,
+      { scale: 1.08, opacity: 0.4 },
+      { scale: 1, opacity: 1, duration: 0.8, ease: 'power2.out' }
+    );
+  }, { scope: containerRef, dependencies: [currentIndex] });
+
+  // Autoplay timer (4.5s)
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % items.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [items.length]);
+
+  if (!activeItem || !items.length) return null;
+
+  const parsedPrice = Number((activeItem.price || '').replace(',', '.'));
+  const hasPrice = activeItem.price && Number.isFinite(parsedPrice) && parsedPrice > 0;
+  const formattedUsd = hasPrice
+    ? parsedPrice.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : activeItem.price || '';
+  const vesAmount = hasPrice && bcvRate ? parsedPrice * bcvRate : null;
+  const formattedVes = vesAmount
+    ? vesAmount.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden rounded-3xl border shadow-xl transition-all ${
+        isDark ? 'border-slate-800 bg-slate-900' : 'border-amber-200/80 bg-white'
+      }`}
+    >
+      {/* Contenedor de la Imagen con Zoom Suave Ken Burns */}
+      <div
+        onClick={() => onSelectImage(activeItem)}
+        className="relative h-64 sm:h-80 w-full overflow-hidden bg-black cursor-pointer group"
+      >
+        {activeItem.imageUrl ? (
+          <img
+            ref={imageRef}
+            src={activeItem.imageUrl}
+            alt={t(activeItem.title) || 'Foto del plato'}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full grid place-items-center bg-slate-900 text-slate-500 text-4xl">
+            🍽️
+          </div>
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+        {/* Badge "Plato Destacado" */}
+        <span
+          className="absolute top-4 left-4 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-lg backdrop-blur-md"
+          style={{ backgroundColor: primaryColor }}
+        >
+          🌟 Especialidad de la Casa
+        </span>
+
+        {/* Paginador (Puntos de la Galería) */}
+        {items.length > 1 && (
+          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+            {items.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                }}
+                className={`h-2 rounded-full transition-all ${
+                  idx === currentIndex ? 'w-5 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
+                }`}
+                title={`Ver foto ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Información superpuesta sobre la foto */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 text-white space-y-1">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-xl sm:text-2xl font-extrabold drop-shadow-md truncate">
+                {t(activeItem.title) || 'Plato Destacado'}
+              </h3>
+              {activeItem.description && (
+                <p className="text-xs sm:text-sm text-slate-200 line-clamp-2 mt-0.5 drop-shadow">
+                  {t(activeItem.description)}
+                </p>
+              )}
+            </div>
+
+            {hasPrice && (
+              <div
+                className="shrink-0 text-right rounded-2xl px-3.5 py-1.5 backdrop-blur-md border border-white/20 shadow-lg"
+                style={{ backgroundColor: `${primaryColor}e6` }}
+              >
+                <div className="text-sm sm:text-base font-extrabold text-white">
+                  {isVenezuela ? `$ ${formattedUsd}` : `${formattedUsd} ${currencySymbol || '€'}`}
+                </div>
+                {isVenezuela && formattedVes && (
+                  <div className="text-[10px] font-bold text-amber-200">
+                    {formattedVes} Bs.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de progreso de cambio de diapositiva */}
+      {items.length > 1 && (
+        <div className="h-1 w-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+          <div
+            key={currentIndex}
+            className="h-full animate-progress"
+            style={{
+              backgroundColor: primaryColor,
+              animationDuration: '4.5s',
+              animationTimingFunction: 'linear',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

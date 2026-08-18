@@ -46,6 +46,16 @@ export interface MenuItem {
   description: Translatable;
   available?: boolean;
   allergens?: string[];
+  imageUrl?: string;
+}
+
+export interface GalleryItem {
+  id: string;
+  imageUrl: string;
+  title: Translatable;
+  description: Translatable;
+  price?: string;
+  available?: boolean;
 }
 
 export interface MenuCategory {
@@ -78,6 +88,7 @@ export interface MenuData {
   enableMultilingual?: boolean;
   customBcvRate?: number;
   menus?: MenuCollection[];
+  featuredGallery?: GalleryItem[];
 }
 
 export function generateId(): string {
@@ -154,6 +165,17 @@ export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined):
     ];
   }
 
+  const featuredGallery: GalleryItem[] = Array.isArray(menu?.featuredGallery)
+    ? menu.featuredGallery.slice(0, 15).map((item, idx) => ({
+        id: item.id || `gallery-${idx}`,
+        imageUrl: item.imageUrl || '',
+        title: item.title || { ...EMPTY_TRANSLATABLE },
+        description: item.description || { ...EMPTY_TRANSLATABLE },
+        price: item.price || '',
+        available: item.available !== false,
+      }))
+    : [];
+
   return {
     restaurantName,
     tagline,
@@ -168,6 +190,7 @@ export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined):
     enableMultilingual,
     customBcvRate,
     menus: menusList,
+    featuredGallery,
   };
 }
 

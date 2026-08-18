@@ -128,5 +128,20 @@ create policy "Public can view bcv rates"
   using (true);
 
 -- =============================================
+-- Configuración de Supabase Storage (Bucket menu-images)
+-- =============================================
+insert into storage.buckets (id, name, public)
+values ('menu-images', 'menu-images', true)
+on conflict (id) do nothing;
+
+create policy "Public Access to Menu Images"
+  on storage.objects for select
+  using (bucket_id = 'menu-images');
+
+create policy "Authenticated users can upload menu images"
+  on storage.objects for insert
+  with check (bucket_id = 'menu-images' and auth.role() = 'authenticated');
+
+-- =============================================
 -- FIN
 -- =============================================

@@ -6,6 +6,7 @@ import {
   MenuCollection,
   MenuCategory,
   MenuItem,
+  GalleryItem,
   EMPTY_TRANSLATABLE,
   generateId,
   ALLERGENS,
@@ -13,6 +14,7 @@ import {
 } from '@/lib/types';
 import { CheckIcon, MenuIcon, SettingsIcon, SparkIcon } from '@/components/Icons';
 import MenuImportModal from '@/components/MenuImportModal';
+import { compressImageToWebP } from '@/lib/imageUtils';
 
 interface AdminPanelProps {
   menu: MenuData;
@@ -412,6 +414,90 @@ export default function AdminPanel({
           : m
       ),
     }));
+  };
+  const updateItemImage = (categoryId: string, itemId: string, imageUrl: string) => {
+    if (!currentCollection) return;
+    setCurrentMenu((prev) => ({
+      ...prev,
+      menus: (prev.menus || []).map((m) =>
+        m.id === currentCollection.id
+          ? {
+              ...m,
+              categories: m.categories.map((cat) =>
+                cat.id === categoryId
+                  ? {
+                      ...cat,
+                      items: cat.items.map((item) =>
+                        item.id === itemId ? { ...item, imageUrl } : item
+                      ),
+                    }
+                  : cat
+              ),
+            }
+          : m
+      ),
+    }));
+  };
+
+  // ─── Handlers de la Galería Destacada (Máx 15 Fotos) ─────────────────
+  const addGalleryItem = () => {
+    const currentList = currentMenu.featuredGallery || [];
+    if (currentList.length >= 15) {
+      alert('Se ha alcanzado el límite máximo de 15 fotos en la Galería Destacada.');
+      return;
+    }
+
+    const newItem: GalleryItem = {
+      id: generateId(),
+      imageUrl: '',
+      title: { ...EMPTY_TRANSLATABLE, [activeLang]: 'Plato Destacado' },
+      description: { ...EMPTY_TRANSLATABLE },
+      price: '',
+      available: true,
+    };
+
+    setCurrentMenu((prev) => ({
+      ...prev,
+      featuredGallery: [...(prev.featuredGallery || []), newItem],
+    }));
+  };
+
+  const updateGalleryItem = (
+    id: string,
+    field: 'title' | 'description' | 'price' | 'imageUrl',
+    value: string
+  ) => {
+    setCurrentMenu((prev) => ({
+      ...prev,
+      featuredGallery: (prev.featuredGallery || []).map((item) => {
+        if (item.id !== id) return item;
+        if (field === 'title' || field === 'description') {
+          return { ...item, [field]: { ...item[field], [activeLang]: value } };
+        }
+        return { ...item, [field]: value };
+      }),
+    }));
+  };
+
+  const removeGalleryItem = (id: string) => {
+    setCurrentMenu((prev) => ({
+      ...prev,
+      featuredGallery: (prev.featuredGallery || []).filter((item) => item.id !== id),
+    }));
+  };
+
+  const reorderGalleryItem = (id: string, direction: 'up' | 'down') => {
+    setCurrentMenu((prev) => {
+      const list = [...(prev.featuredGallery || [])];
+      const index = list.findIndex((i) => i.id === id);
+      if (index === -1) return prev;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+      return { ...prev, featuredGallery: list };
+    });
   };
 
   // ─── Handlers de Ajustes Generales ──────────────────────────────────
@@ -951,6 +1037,16 @@ export default function AdminPanel({
         </section>
       ) : (
         <section role="tabpanel" className="space-y-6 animate-fade-in">
+          {/* Módulo de Galería Destacada del Chef */}
+          <FeaturedGalleryEditor
+            gallery={currentMenu.featuredGallery || []}
+            activeLang={activeLang}
+            onAdd={addGalleryItem}
+            onUpdate={updateGalleryItem}
+            onRemove={removeGalleryItem}
+            onReorder={reorderGalleryItem}
+          />
+
           {/* Barra superior de Cartas/Menús (Multi-Menu Selector) */}
           <div className="card p-4 space-y-3 dark:!bg-slate-800 dark:!border-slate-700">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] dark:border-slate-700 pb-3">
@@ -1113,6 +1209,7 @@ export default function AdminPanel({
                       onToggleItemAvailable={toggleItemAvailable}
                       onUpdateAllergens={updateItemAllergens}
                       onRemoveItem={removeItem}
+                      onUpdateItemImage={updateItemImage}
                       isVenezuela={currentMenu.countryCode === 'VE' || currentMenu.showBcvRate === true}
                       bcvRate={bcvRate}
                     />
@@ -1157,6 +1254,7 @@ interface CategoryEditorProps {
   onToggleItemAvailable: (categoryId: string, itemId: string) => void;
   onUpdateAllergens: (categoryId: string, itemId: string, allergens: string[]) => void;
   onRemoveItem: (categoryId: string, itemId: string) => void;
+  onUpdateItemImage: (categoryId: string, itemId: string, imageUrl: string) => void;
   isVenezuela?: boolean;
   bcvRate?: number | null;
 }
@@ -1174,6 +1272,7 @@ function CategoryEditor({
   onToggleItemAvailable,
   onUpdateAllergens,
   onRemoveItem,
+  onUpdateItemImage,
   isVenezuela,
   bcvRate,
 }: CategoryEditorProps) {
@@ -1235,6 +1334,7 @@ function CategoryEditor({
             onToggleAvailable={onToggleItemAvailable}
             onUpdateAllergens={onUpdateAllergens}
             onRemove={onRemoveItem}
+            onUpdateImage={onUpdateItemImage}
             isVenezuela={isVenezuela}
             bcvRate={bcvRate}
           />
@@ -1259,6 +1359,7 @@ interface ItemEditorProps {
   onToggleAvailable: (categoryId: string, itemId: string) => void;
   onUpdateAllergens: (categoryId: string, itemId: string, allergens: string[]) => void;
   onRemove: (categoryId: string, itemId: string) => void;
+  onUpdateImage: (categoryId: string, itemId: string, imageUrl: string) => void;
   isVenezuela?: boolean;
   bcvRate?: number | null;
 }
@@ -1271,6 +1372,7 @@ function ItemEditor({
   onToggleAvailable,
   onUpdateAllergens,
   onRemove,
+  onUpdateImage,
   isVenezuela,
   bcvRate,
 }: ItemEditorProps) {
@@ -1337,12 +1439,48 @@ function ItemEditor({
         </div>
       </div>
 
-      {/* Fila de controles: Disponibilidad (Agotado) y Alérgenos */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[var(--border)] dark:border-slate-700 pt-3">
+      {/* Fila de controles: Foto, Disponibilidad y Alérgenos */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] dark:border-slate-700 pt-3">
+        {/* Foto del Plato */}
+        <div className="flex items-center gap-2">
+          {item.imageUrl ? (
+            <div className="relative group shrink-0">
+              <img src={item.imageUrl} alt={item.name[activeLang] || 'Plato'} className="h-10 w-10 rounded-lg object-cover border dark:border-slate-700 shadow-sm" />
+              <button
+                type="button"
+                onClick={() => onUpdateImage(categoryId, item.id, '')}
+                className="absolute -top-1.5 -right-1.5 grid h-4 w-4 place-items-center rounded-full bg-red-600 text-white text-[10px] font-bold shadow-md hover:bg-red-700 transition-colors"
+                title="Quitar foto"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <label className="btn btn-outline btn-sm !py-1 !px-2.5 text-xs inline-flex items-center gap-1.5 cursor-pointer dark:!bg-slate-800 dark:!border-slate-700 dark:!text-slate-300 hover:border-orange-500">
+              <span>📷 Foto</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const compressed = await compressImageToWebP(file, { maxDimension: 800, quality: 0.82 });
+                    onUpdateImage(categoryId, item.id, compressed);
+                  } catch (err) {
+                    alert((err as Error).message);
+                  }
+                }}
+              />
+            </label>
+          )}
+        </div>
+
         {/* Switch Disponibilidad por Cocina */}
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[var(--text-secondary)] dark:text-slate-400">
-            {isAvailable ? '🟢 Disponible' : '🔴 Agotado / No disponible'}
+            {isAvailable ? '🟢 Disponible' : '🔴 Agotado'}
           </span>
           <button
             type="button"
@@ -1399,5 +1537,160 @@ function TrashIcon() {
     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 7h16M10 11v6m4-6v6M9 7l.7-2h4.6l.7 2m-9 0 .8 12h10.2l.8-12" />
     </svg>
+  );
+}
+
+interface FeaturedGalleryEditorProps {
+  gallery: GalleryItem[];
+  activeLang: Language;
+  onAdd: () => void;
+  onUpdate: (id: string, field: 'title' | 'description' | 'price' | 'imageUrl', value: string) => void;
+  onRemove: (id: string) => void;
+  onReorder: (id: string, direction: 'up' | 'down') => void;
+}
+
+function FeaturedGalleryEditor({
+  gallery,
+  activeLang,
+  onAdd,
+  onUpdate,
+  onRemove,
+  onReorder,
+}: FeaturedGalleryEditorProps) {
+  return (
+    <div className="card p-4 sm:p-5 space-y-4 dark:!bg-slate-800 dark:!border-slate-700">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] dark:border-slate-700 pb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🌟</span>
+            <h3 className="text-lg font-bold text-[var(--kitcho-charcoal)] dark:text-white">
+              Galería Destacada de Platos ({gallery.length}/15 fotos)
+            </h3>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400 mt-0.5">
+            Muestra tus platillos estrella en un carrusel animado en la parte superior del menú.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={gallery.length >= 15}
+          className="btn btn-primary btn-sm whitespace-nowrap gap-1 text-xs font-bold disabled:opacity-50"
+        >
+          + Añadir foto destacada
+        </button>
+      </div>
+
+      {gallery.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--border)] dark:border-slate-700 p-6 text-center text-xs text-[var(--text-secondary)] dark:text-slate-400">
+          No hay platos en la galería destacada. Pulsa en "+ Añadir foto destacada" para crear el primero.
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {gallery.map((item, idx) => (
+            <div
+              key={item.id}
+              className="rounded-xl border border-[var(--border)] dark:border-slate-700 bg-[#fcfcfa] dark:bg-slate-900/60 p-3 space-y-2.5 relative group"
+            >
+              {/* Imagen y Controles de Subida */}
+              <div className="relative h-36 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                {item.imageUrl ? (
+                  <>
+                    <img src={item.imageUrl} alt={item.title[activeLang] || 'Foto'} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => onUpdate(item.id, 'imageUrl', '')}
+                      className="absolute top-2 right-2 bg-red-600 text-white rounded-full h-6 w-6 grid place-items-center text-xs font-bold shadow-md hover:bg-red-700 transition-colors"
+                      title="Eliminar foto"
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <label className="flex flex-col items-center justify-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 cursor-pointer hover:text-[var(--kitcho-orange)]">
+                    <span className="text-2xl">📷</span>
+                    <span>Subir Foto WebP</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const compressed = await compressImageToWebP(file, { maxDimension: 900, quality: 0.84 });
+                          onUpdate(item.id, 'imageUrl', compressed);
+                        } catch (err) {
+                          alert((err as Error).message);
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Título y Precio */}
+              <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
+                <input
+                  type="text"
+                  value={item.title[activeLang] || ''}
+                  onChange={(e) => onUpdate(item.id, 'title', e.target.value)}
+                  className="input !min-h-9 !py-1 text-xs font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                  placeholder="Título plato"
+                />
+                <input
+                  type="text"
+                  value={item.price || ''}
+                  onChange={(e) => onUpdate(item.id, 'price', e.target.value)}
+                  className="input !min-h-9 !py-1 text-center text-xs font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
+                  placeholder="Precio ($/€)"
+                />
+              </div>
+
+              {/* Descripción */}
+              <input
+                type="text"
+                value={item.description[activeLang] || ''}
+                onChange={(e) => onUpdate(item.id, 'description', e.target.value)}
+                className="input !min-h-8 !py-1 text-xs dark:!bg-slate-900 dark:!border-slate-700 dark:!text-slate-300"
+                placeholder="Descripción breve opcional"
+              />
+
+              {/* Botones de Reordenamiento y Eliminar */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800 text-xs">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onReorder(item.id, 'up')}
+                    disabled={idx === 0}
+                    className="icon-button !h-7 !w-7 text-xs disabled:opacity-30 dark:!bg-slate-800 dark:!border-slate-700"
+                    title="Mover antes"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReorder(item.id, 'down')}
+                    disabled={idx === gallery.length - 1}
+                    className="icon-button !h-7 !w-7 text-xs disabled:opacity-30 dark:!bg-slate-800 dark:!border-slate-700"
+                    title="Mover después"
+                  >
+                    →
+                  </button>
+                  <span className="text-[10px] font-bold text-gray-400 pl-1">#{idx + 1}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemove(item.id)}
+                  className="text-xs font-bold text-red-600 hover:text-red-700 dark:text-red-400"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
