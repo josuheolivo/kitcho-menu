@@ -122,7 +122,10 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
 
   useGSAP(() => {
     if (!containerRef.current) return;
-    gsap.from(containerRef.current.querySelectorAll('.gsap-animate-card'), {
+    const targets = containerRef.current.querySelectorAll('.gsap-animate-card');
+    if (targets.length === 0) return;
+
+    gsap.from(targets, {
       y: 16,
       autoAlpha: 0,
       stagger: 0.04,
@@ -733,7 +736,7 @@ function MenuItemCard({
 
   return (
     <article
-      className={`card group p-4 transition-all duration-200 hover:shadow-md sm:p-5 ${
+      className={`card gsap-animate-card group p-4 transition-all duration-200 hover:shadow-md sm:p-5 ${
         isDark ? '!bg-slate-900 !border-slate-800' : ''
       } ${!available ? 'opacity-60 grayscale-[40%]' : ''}`}
     >
