@@ -77,6 +77,8 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
     price?: string;
   } | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     if (!enableMultilingual) return;
     const browserLang = navigator.language.split('-')[0] as Language;
@@ -93,13 +95,20 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
   const currentCollection =
     activeMenus.find((m) => m.id === selectedMenuId) || activeMenus[0];
 
-  // Get visible categories for current active collection
+  // Get visible categories for current active collection with real-time searchQuery filter
   const visibleCategories = (currentCollection?.categories || [])
     .filter((cat) => cat.available !== false)
-    .map((cat) => ({
-      ...cat,
-      visibleItems: cat.items.filter((item) => t(item.name)),
-    }))
+    .map((cat) => {
+      const items = cat.items.filter((item) => t(item.name));
+      if (!searchQuery.trim()) return { ...cat, visibleItems: items };
+      const q = searchQuery.toLowerCase().trim();
+      const filteredItems = items.filter((item) => {
+        const nameStr = t(item.name).toLowerCase();
+        const descStr = t(item.description).toLowerCase();
+        return nameStr.includes(q) || descStr.includes(q);
+      });
+      return { ...cat, visibleItems: filteredItems };
+    })
     .filter((cat) => cat.visibleItems.length > 0);
 
   const menuTitle = menu.restaurantName || restaurantName;
@@ -119,7 +128,7 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
       ease: 'power2.out',
       clearProps: 'all',
     });
-  }, { scope: containerRef, dependencies: [selectedMenuId, lang] });
+  }, { scope: containerRef, dependencies: [selectedMenuId, lang, searchQuery] });
 
   return (
     <div
@@ -143,28 +152,21 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
         />
 
         <div className="relative mx-auto max-w-3xl text-center animate-fade-in">
-          {showLogo && (
-            logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={menuTitle}
-                className="mx-auto max-h-24 sm:max-h-28 w-auto object-contain drop-shadow-md"
-              />
-            ) : (
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#facc15]">
-                <SparkIcon className="h-6 w-6" />
-              </span>
-            )
+          {showLogo && logoUrl && (
+            <img
+              src={logoUrl}
+              alt=""
+              aria-hidden="true"
+              className="mx-auto max-h-24 sm:max-h-28 w-auto object-contain drop-shadow-md mb-2"
+            />
           )}
 
-          {showName && (
-            <h1 className={`display text-4xl text-white sm:text-6xl ${showLogo ? 'mt-5' : ''}`}>
-              {menuTitle}
-            </h1>
-          )}
+          <h1 className="display text-3xl sm:text-5xl font-extrabold text-white">
+            {menuTitle}
+          </h1>
 
           {t(menu.tagline) && (
-            <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-white/70 sm:text-lg">
+            <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
               {t(menu.tagline)}
             </p>
           )}
@@ -318,6 +320,32 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
 
       {/* Main Content Hub */}
       <main className="container py-8 sm:py-12">
+        {/* Buscador de Platos en Tiempo Real */}
+        <div className="mx-auto max-w-xl mb-8">
+          <div className="relative">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔎 Buscar plato o ingrediente en la carta..."
+              className={`w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none transition-all ${
+                isDark
+                  ? 'bg-slate-900 border-slate-800 text-white placeholder-slate-500 focus:border-slate-700'
+                  : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-amber-500 shadow-sm'
+              }`}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-200 dark:bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300"
+              >
+                ✕ Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+
         {visibleCategories.length === 0 ? (
           <EmptyState primaryColor={primaryColor} isDark={isDark} />
         ) : (

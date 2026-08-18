@@ -66,8 +66,26 @@ export default function LandingPage() {
     });
   }, { scope: containerRef });
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    'name': 'Kitcho Menu',
+    'applicationCategory': 'BusinessApplication',
+    'operatingSystem': 'Web',
+    'offers': {
+      '@type': 'Offer',
+      'price': '0',
+      'priceCurrency': 'EUR',
+    },
+    'description': 'Plataforma SaaS de cartas digitales QR para restaurantes con múltiples cartas, alérgenos, fotos WebP, tasa BCV y doble moneda.',
+  };
+
   return (
     <div ref={containerRef} className="min-h-screen overflow-hidden bg-[#f7f7f4]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Navegación */}
       <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[#f7f7f4]/90 backdrop-blur-xl">
         <div className="container flex h-[4.5rem] items-center justify-between">

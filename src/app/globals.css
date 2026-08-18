@@ -50,7 +50,7 @@ body {
   margin: 0;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -64,16 +64,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .container { width: min(100% - 2rem, 1180px); margin-inline: auto; }
 
+#como-funciona { scroll-margin-top: 5rem; }
+
 .brand { display: inline-flex; align-items: center; gap: .65rem; color: var(--kitcho-charcoal); text-decoration: none; }
-.brand-mark { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; border-radius: .8rem; background: var(--kitcho-orange); color: white; box-shadow: 0 6px 14px rgba(234, 88, 12, .22); transition: transform .2s ease; }
+.brand-mark { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; border-radius: .8rem; background: var(--kitcho-orange-dark); color: white; box-shadow: 0 6px 14px rgba(194, 65, 12, .22); transition: transform .2s ease; }
 .brand:hover .brand-mark { transform: scale(1.05) rotate(-3deg); }
 .brand-mark svg { width: 1.45rem; height: 1.45rem; }
 .brand-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.035em; }
-.brand-name em { color: var(--kitcho-orange); font-family: 'Playfair Display', Georgia, serif; font-weight: 600; }
+.brand-name em { color: var(--kitcho-orange-dark); font-family: var(--font-display), 'Playfair Display', Georgia, serif; font-weight: 600; }
 
 .eyebrow { display: inline-flex; align-items: center; gap: .5rem; color: var(--kitcho-orange-dark); font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .eyebrow::before { width: 1.75rem; height: 1px; background: currentColor; content: ''; }
-.display { font-family: 'Playfair Display', Georgia, serif; letter-spacing: -.04em; line-height: .98; }
+.display { font-family: var(--font-display), 'Playfair Display', Georgia, serif; letter-spacing: -.04em; line-height: .98; }
 
 .btn {
   display: inline-flex; min-height: 2.8rem; align-items: center; justify-content: center; gap: .55rem;
@@ -84,9 +86,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .btn svg { width: 1.05rem; height: 1.05rem; }
 .btn:hover { transform: translateY(-2px); }
 .btn:active { transform: translateY(0); }
-.btn:focus-visible, .input:focus-visible, .icon-button:focus-visible, .tab-button:focus-visible, .language-button:focus-visible { outline: 3px solid rgba(234, 88, 12, .3); outline-offset: 2px; }
-.btn-primary { background: var(--kitcho-orange); border-color: var(--kitcho-orange); color: white; box-shadow: 0 7px 16px rgba(234, 88, 12, .2); }
-.btn-primary:hover { background: var(--kitcho-orange-dark); border-color: var(--kitcho-orange-dark); box-shadow: 0 12px 24px rgba(194, 65, 12, .3); }
+.btn:focus-visible, .input:focus-visible, .icon-button:focus-visible, .tab-button:focus-visible, .language-button:focus-visible { outline: 3px solid rgba(194, 65, 12, .4); outline-offset: 2px; }
+.btn-primary { background: var(--kitcho-orange-dark); border-color: var(--kitcho-orange-dark); color: white; box-shadow: 0 7px 16px rgba(194, 65, 12, .25); }
+.btn-primary:hover { background: #9a3412; border-color: #9a3412; box-shadow: 0 12px 24px rgba(154, 52, 18, .35); }
 .btn-secondary { background: var(--kitcho-charcoal); border-color: var(--kitcho-charcoal); color: white; }
 .btn-secondary:hover { background: var(--kitcho-charcoal-light); }
 .btn-outline { background: white; border-color: var(--border-strong); color: var(--text-primary); }
