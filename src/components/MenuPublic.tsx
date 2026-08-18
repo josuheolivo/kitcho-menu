@@ -27,6 +27,26 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
   const menu = ensureMenuStructure(rawMenu);
   const [lang, setLang] = useState<Language>('es');
   const [isDark, setIsDark] = useState<boolean>(menu.themeMode === 'dark');
+  const [bcvRate, setBcvRate] = useState<number | null>(menu.customBcvRate || null);
+  const [currencyMode, setCurrencyMode] = useState<'both' | 'usd' | 'ves'>('both');
+
+  const enableMultilingual = menu.enableMultilingual !== false;
+  const isVenezuela = menu.countryCode === 'VE' || menu.showBcvRate === true;
+  const currencySymbol = menu.currencyCode === 'USD' ? '$' : menu.currencyCode === 'VES' ? 'Bs.' : '€';
+
+  // Obtener tasa oficial BCV si está activado
+  useEffect(() => {
+    if (isVenezuela && !menu.customBcvRate) {
+      fetch('/api/bcv')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.rateVes && !isNaN(data.rateVes)) {
+            setBcvRate(data.rateVes);
+          }
+        })
+        .catch((err) => console.warn('No se pudo cargar la tasa BCV:', err));
+    }
+  }, [isVenezuela, menu.customBcvRate]);
 
   // Multi-menu active collections
   const activeMenus = (menu.menus || []).filter((m) => m.available !== false);
@@ -48,12 +68,13 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
   } | null>(null);
 
   useEffect(() => {
+    if (!enableMultilingual) return;
     const browserLang = navigator.language.split('-')[0] as Language;
     if (languages.some((l) => l.code === browserLang)) {
       const timeoutId = window.setTimeout(() => setLang(browserLang), 0);
       return () => window.clearTimeout(timeoutId);
     }
-  }, []);
+  }, [enableMultilingual]);
 
   const t = (text: Translatable | string | undefined) =>
     !text ? '' : typeof text === 'string' ? text : text[lang] || text.es || text.en || '';
@@ -144,10 +165,51 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
       >
         <div className="container flex min-h-14 flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
           <div className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[.1em] text-[var(--text-secondary)]">
-              <GlobeIcon className="h-4 w-4" />
-              Idioma
-            </span>
+            {enableMultilingual && (
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[.1em] text-[var(--text-secondary)]">
+                <GlobeIcon className="h-4 w-4" />
+                Idioma
+              </span>
+            )}
+
+            {/* Selector de preferencia de moneda en Venezuela */}
+            {isVenezuela && (
+              <div className="flex items-center gap-1 bg-white/70 dark:bg-slate-900/80 rounded-lg p-1 text-[11px] font-bold border border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setCurrencyMode('both')}
+                  className={`px-2 py-1 rounded-md transition-colors ${
+                    currencyMode === 'both'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900'
+                  }`}
+                >
+                  $ / Bs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrencyMode('usd')}
+                  className={`px-2 py-1 rounded-md transition-colors ${
+                    currencyMode === 'usd'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900'
+                  }`}
+                >
+                  Solo $
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrencyMode('ves')}
+                  className={`px-2 py-1 rounded-md transition-colors ${
+                    currencyMode === 'ves'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-slate-400 hover:text-gray-900'
+                  }`}
+                >
+                  Solo Bs
+                </button>
+              </div>
+            )}
 
             {/* Dark mode switch */}
             <button
@@ -162,32 +224,34 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
             </button>
           </div>
 
-          {/* Language selector */}
-          <div className="flex flex-1 justify-center gap-1 overflow-x-auto py-1 sm:flex-none sm:justify-start">
-            {languages.map((language) => (
-              <button
-                key={language.code}
-                type="button"
-                onClick={() => setLang(language.code)}
-                aria-label={`Ver menú en ${language.name}`}
-                aria-pressed={lang === language.code}
-                className={`language-button min-h-9 rounded-lg px-2.5 text-xs font-bold transition-colors ${
-                  lang === language.code
-                    ? 'text-white'
-                    : isDark
-                    ? 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                    : 'text-[var(--text-secondary)] hover:bg-white hover:text-[var(--kitcho-charcoal)]'
-                }`}
-                style={
-                  lang === language.code
-                    ? { backgroundColor: primaryColor }
-                    : undefined
-                }
-              >
-                {language.label}
-              </button>
-            ))}
-          </div>
+          {/* Language selector (solo si enableMultilingual === true) */}
+          {enableMultilingual && (
+            <div className="flex flex-1 justify-center gap-1 overflow-x-auto py-1 sm:flex-none sm:justify-start">
+              {languages.map((language) => (
+                <button
+                  key={language.code}
+                  type="button"
+                  onClick={() => setLang(language.code)}
+                  aria-label={`Ver menú en ${language.name}`}
+                  aria-pressed={lang === language.code}
+                  className={`language-button min-h-9 rounded-lg px-2.5 text-xs font-bold transition-colors ${
+                    lang === language.code
+                      ? 'text-white'
+                      : isDark
+                      ? 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      : 'text-[var(--text-secondary)] hover:bg-white hover:text-[var(--kitcho-charcoal)]'
+                  }`}
+                  style={
+                    lang === language.code
+                      ? { backgroundColor: primaryColor }
+                      : undefined
+                  }
+                >
+                  {language.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Multi-menu Collection Tabs (if > 1 active collection) */}
@@ -435,6 +499,10 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
                         available={item.available !== false}
                         primaryColor={primaryColor}
                         isDark={isDark}
+                        isVenezuela={isVenezuela}
+                        bcvRate={bcvRate}
+                        currencyMode={currencyMode}
+                        currencySymbol={currencySymbol}
                       />
                     ))}
                   </div>
@@ -462,15 +530,23 @@ export default function MenuPublic({ menu: rawMenu, restaurantName, logoUrl, exp
 
       {/* Page Footer */}
       <footer
-        className={`fixed bottom-0 left-0 right-0 z-30 border-t px-4 py-3 backdrop-blur-xl transition-colors ${
+        className={`fixed bottom-0 left-0 right-0 z-30 border-t px-4 py-2.5 backdrop-blur-xl transition-colors ${
           isDark
             ? 'border-slate-800 bg-slate-950/95 text-slate-300'
             : 'border-[var(--border)] bg-white/95 text-[var(--text-secondary)]'
         }`}
       >
-        <div className="container flex items-center justify-center">
-          <BrandMark compact />
-          <span className="ml-2 text-xs">Tu carta digital</span>
+        <div className="container flex flex-col sm:flex-row items-center justify-between gap-1 text-xs">
+          <div className="flex items-center">
+            <BrandMark compact />
+            <span className="ml-2 text-xs font-medium">Tu carta digital</span>
+          </div>
+
+          {isVenezuela && bcvRate && (
+            <div className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+              Tasa oficial BCV: <span className="font-bold">{bcvRate.toFixed(2)} Bs/USD</span>
+            </div>
+          )}
         </div>
       </footer>
     </div>
@@ -485,6 +561,10 @@ function MenuItemCard({
   available,
   primaryColor,
   isDark,
+  isVenezuela,
+  bcvRate,
+  currencyMode,
+  currencySymbol,
 }: {
   name: string;
   description: string;
@@ -493,9 +573,22 @@ function MenuItemCard({
   available: boolean;
   primaryColor: string;
   isDark: boolean;
+  isVenezuela?: boolean;
+  bcvRate?: number | null;
+  currencyMode?: 'both' | 'usd' | 'ves';
+  currencySymbol?: string;
 }) {
-  const parsedPrice = Number(price);
+  const parsedPrice = Number(price.replace(',', '.'));
   const hasPrice = price.trim() !== '' && Number.isFinite(parsedPrice) && parsedPrice > 0;
+
+  const formattedUsd = hasPrice
+    ? parsedPrice.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+
+  const vesAmount = hasPrice && bcvRate ? parsedPrice * bcvRate : null;
+  const formattedVes = vesAmount
+    ? vesAmount.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
 
   return (
     <article
@@ -556,19 +649,32 @@ function MenuItemCard({
         </div>
 
         {hasPrice && (
-          <p
-            className="shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-bold shadow-sm"
+          <div
+            className="shrink-0 text-right rounded-xl px-3 py-1.5 shadow-sm"
             style={{
               backgroundColor: `${primaryColor}18`,
               color: primaryColor,
             }}
           >
-            {parsedPrice.toLocaleString('es-ES', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{' '}
-            €
-          </p>
+            {isVenezuela ? (
+              <div className="flex flex-col items-end">
+                {(currencyMode === 'both' || currencyMode === 'usd') && (
+                  <span className="text-sm font-extrabold tracking-tight">
+                    $ {formattedUsd}
+                  </span>
+                )}
+                {(currencyMode === 'both' || currencyMode === 'ves') && formattedVes && (
+                  <span className="text-[11px] font-bold opacity-85">
+                    {formattedVes} Bs.
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-sm font-bold">
+                {formattedUsd} {currencySymbol || '€'}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </article>

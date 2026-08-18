@@ -72,6 +72,11 @@ export interface MenuData {
   showLogo?: boolean;
   primaryColor?: string;
   themeMode?: 'light' | 'dark';
+  countryCode?: 'VE' | 'GLOBAL' | string;
+  currencyCode?: 'USD' | 'EUR' | 'VES' | string;
+  showBcvRate?: boolean;
+  enableMultilingual?: boolean;
+  customBcvRate?: number;
   menus?: MenuCollection[];
 }
 
@@ -93,6 +98,11 @@ export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined):
   const showLogo = menu?.showLogo !== false;
   const primaryColor = menu?.primaryColor || '#ea580c';
   const themeMode = menu?.themeMode === 'dark' ? 'dark' : 'light';
+  const countryCode = menu?.countryCode || 'GLOBAL';
+  const currencyCode = menu?.currencyCode || (countryCode === 'VE' ? 'USD' : 'EUR');
+  const showBcvRate = menu?.showBcvRate ?? (countryCode === 'VE');
+  const enableMultilingual = menu?.enableMultilingual ?? (countryCode === 'GLOBAL');
+  const customBcvRate = menu?.customBcvRate;
 
   let menusList: MenuCollection[] = [];
 
@@ -152,6 +162,11 @@ export function ensureMenuStructure(menu: Partial<MenuData> | null | undefined):
     showLogo,
     primaryColor,
     themeMode,
+    countryCode,
+    currencyCode,
+    showBcvRate,
+    enableMultilingual,
+    customBcvRate,
     menus: menusList,
   };
 }

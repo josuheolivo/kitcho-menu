@@ -13,6 +13,11 @@ create table if not exists restaurants (
   trial_starts_at timestamptz not null default now(),
   trial_ends_at timestamptz not null default (now() + interval '15 days'),
   plan text not null default 'trial' check (plan in ('trial', 'free', 'pro')),
+  country_code text not null default 'GLOBAL',
+  currency_code text not null default 'USD',
+  show_bcv_rate boolean not null default false,
+  enable_multilingual boolean not null default false,
+  custom_bcv_rate numeric(12, 4) default null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -25,11 +30,20 @@ create table if not exists menus (
   updated_at timestamptz not null default now()
 );
 
+-- Tabla de tasas BCV (Historización y caché de la tasa oficial en Venezuela)
+create table if not exists bcv_rates (
+  id uuid primary key default gen_random_uuid(),
+  rate_ves numeric(12, 4) not null check (rate_ves > 0),
+  source text not null default 'BCV_OFFICIAL_AUTO',
+  fetched_at timestamptz not null default now()
+);
+
 -- Índices
 create index if not exists idx_restaurants_owner on restaurants(owner_id);
 create unique index if not exists idx_restaurants_owner_unique on restaurants(owner_id);
 create index if not exists idx_restaurants_slug on restaurants(slug);
 create index if not exists idx_menus_restaurant on menus(restaurant_id);
+create index if not exists idx_bcv_rates_fetched on bcv_rates(fetched_at desc);
 
 -- Función para generar slug único
 create or replace function generate_restaurant_slug()
@@ -104,6 +118,13 @@ create policy "Public can view menus"
 
 create policy "Public can view restaurants"
   on restaurants for select
+  using (true);
+
+-- Políticas de tasas BCV (Lectura pública segura, sin acceso de escritura a usuarios normales)
+alter table bcv_rates enable row level security;
+
+create policy "Public can view bcv rates"
+  on bcv_rates for select
   using (true);
 
 -- =============================================

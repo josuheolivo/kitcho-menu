@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MenuData,
   MenuCollection,
@@ -67,8 +67,18 @@ export default function AdminPanel({
   const [translating, setTranslating] = useState(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [bcvRate, setBcvRate] = useState<number | null>(currentMenu.customBcvRate || null);
 
-
+  useEffect(() => {
+    fetch('/api/bcv')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.rateVes && !isNaN(data.rateVes)) {
+          setBcvRate(data.rateVes);
+        }
+      })
+      .catch((err) => console.warn('Error al cargar BCV en Admin:', err));
+  }, []);
 
   const toggleAdminDarkMode = () => {
     setAdminDarkMode((prev) => {
@@ -76,6 +86,30 @@ export default function AdminPanel({
       localStorage.setItem('kitcho_admin_dark', String(next));
       return next;
     });
+  };
+
+  const updateCountryCode = (countryCode: string) => {
+    setCurrentMenu((prev) => ({
+      ...prev,
+      countryCode,
+      currencyCode: countryCode === 'VE' ? 'USD' : 'EUR',
+      showBcvRate: countryCode === 'VE',
+      enableMultilingual: countryCode === 'GLOBAL',
+    }));
+  };
+
+  const toggleShowBcvRate = () => {
+    setCurrentMenu((prev) => ({
+      ...prev,
+      showBcvRate: !prev.showBcvRate,
+    }));
+  };
+
+  const toggleEnableMultilingual = () => {
+    setCurrentMenu((prev) => ({
+      ...prev,
+      enableMultilingual: prev.enableMultilingual === false ? true : false,
+    }));
   };
 
   const menusList = currentMenu.menus || [];
@@ -584,24 +618,26 @@ export default function AdminPanel({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Idioma selector */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-              {languages.map((language) => (
-                <button
-                  type="button"
-                  key={language.code}
-                  onClick={() => setActiveLang(language.code)}
-                  aria-pressed={activeLang === language.code}
-                  className={`language-button min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${
-                    activeLang === language.code
-                      ? 'bg-[var(--kitcho-charcoal)] dark:bg-orange-600 text-white'
-                      : 'text-[var(--text-secondary)] dark:text-slate-400 hover:bg-[#f7f7f4] dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {language.label}
-                </button>
-              ))}
-            </div>
+            {/* Idioma selector (solo si enableMultilingual === true) */}
+            {currentMenu.enableMultilingual !== false && (
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                {languages.map((language) => (
+                  <button
+                    type="button"
+                    key={language.code}
+                    onClick={() => setActiveLang(language.code)}
+                    aria-pressed={activeLang === language.code}
+                    className={`language-button min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${
+                      activeLang === language.code
+                        ? 'bg-[var(--kitcho-charcoal)] dark:bg-orange-600 text-white'
+                        : 'text-[var(--text-secondary)] dark:text-slate-400 hover:bg-[#f7f7f4] dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {language.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               {/* Modo oscuro del panel */}
@@ -614,14 +650,18 @@ export default function AdminPanel({
                 {adminDarkMode ? '☀️' : '🌙'}
               </button>
 
-              <button
-                type="button"
-                onClick={handleAutoTranslate}
-                disabled={translating}
-                className="btn btn-outline whitespace-nowrap dark:!bg-slate-800 dark:!border-slate-700 dark:!text-slate-200"
-              >
-                {translating ? 'Traduciendo…' : '✨ Traducir vacíos'}
-              </button>
+              {currentMenu.enableMultilingual !== false && (
+                <button
+                  type="button"
+                  onClick={handleAutoTranslate}
+                  disabled={translating}
+                  className="btn btn-outline btn-sm gap-2 dark:!bg-slate-800 dark:!border-slate-700 dark:!text-slate-200"
+                  title="Traducir automáticamente las casillas vacías a todos los idiomas"
+                >
+                  <SparkIcon className="h-4 w-4 text-[var(--kitcho-orange)]" />
+                  <span>{translating ? 'Traduciendo...' : 'Traducir con IA'}</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -689,6 +729,91 @@ export default function AdminPanel({
                     Soporta PNG, JPG, WebP o SVG (Máx. 3MB). Aparece libremente centrado en la cabecera.
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Configuración de Región, Monedas y Tasa BCV */}
+            <div className="rounded-xl border border-[var(--border)] dark:border-slate-700 bg-[#fcfcfa] dark:bg-slate-900/60 p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-[var(--kitcho-charcoal)] dark:text-white">Región y Moneda de Operación</p>
+                  <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400">Configura la moneda base y la adaptación a tu mercado local.</p>
+                </div>
+                <span className="rounded-md bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                  {currentMenu.countryCode === 'VE' ? '🇻🇪 Venezuela' : '🌍 España / Global'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => updateCountryCode('GLOBAL')}
+                  className={`flex flex-col items-center justify-center rounded-xl border p-3.5 text-center transition-all ${
+                    currentMenu.countryCode !== 'VE'
+                      ? 'border-[var(--kitcho-orange)] bg-white dark:bg-slate-800 text-[var(--kitcho-charcoal)] dark:text-white ring-2 ring-orange-500/20 font-bold'
+                      : 'border-[var(--border)] dark:border-slate-700 text-[var(--text-secondary)] dark:text-slate-400'
+                  }`}
+                >
+                  <span className="text-xl mb-1">🇪🇸 🌍</span>
+                  <span className="text-xs">España / Global (€ / $)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateCountryCode('VE')}
+                  className={`flex flex-col items-center justify-center rounded-xl border p-3.5 text-center transition-all ${
+                    currentMenu.countryCode === 'VE'
+                      ? 'border-[var(--kitcho-orange)] bg-slate-900 text-white ring-2 ring-orange-500/20 font-bold'
+                      : 'border-[var(--border)] dark:border-slate-700 text-[var(--text-secondary)] dark:text-slate-400'
+                  }`}
+                >
+                  <span className="text-xl mb-1">🇻🇪</span>
+                  <span className="text-xs">Venezuela ($ / Bs. BCV)</span>
+                </button>
+              </div>
+
+              {/* Tasa BCV Toggle */}
+              <div className="flex items-center justify-between gap-4 border-t border-[var(--border)] dark:border-slate-700 pt-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--kitcho-charcoal)] dark:text-white">Doble Moneda ($ / Bs. BCV)</p>
+                  <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400">
+                    Calcula automáticamente el equivalente en Bolívares según la tasa del BCV {bcvRate ? `(${bcvRate.toFixed(2)} Bs/USD)` : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleShowBcvRate}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    currentMenu.showBcvRate !== false ? 'bg-[var(--kitcho-orange)]' : 'bg-gray-300 dark:bg-slate-700'
+                  }`}
+                  role="switch"
+                  aria-checked={currentMenu.showBcvRate !== false}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${currentMenu.showBcvRate !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {/* Toggle de Modo Multilingüe */}
+              <div className="flex items-center justify-between gap-4 border-t border-[var(--border)] dark:border-slate-700 pt-3">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--kitcho-charcoal)] dark:text-white">Modo Multilingüe (IA y Traducciones)</p>
+                  <p className="text-xs text-[var(--text-secondary)] dark:text-slate-400">
+                    {currentMenu.enableMultilingual !== false
+                      ? 'Activado: Muestra pestañas de idiomas (EN, KO, FR, IT, PT) y selector público'
+                      : 'Desactivado (Simplificado): Panel e interfaz en 1 solo idioma (Español)'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleEnableMultilingual}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    currentMenu.enableMultilingual !== false ? 'bg-[var(--kitcho-orange)]' : 'bg-gray-300 dark:bg-slate-700'
+                  }`}
+                  role="switch"
+                  aria-checked={currentMenu.enableMultilingual !== false}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${currentMenu.enableMultilingual !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
               </div>
             </div>
 
@@ -988,6 +1113,8 @@ export default function AdminPanel({
                       onToggleItemAvailable={toggleItemAvailable}
                       onUpdateAllergens={updateItemAllergens}
                       onRemoveItem={removeItem}
+                      isVenezuela={currentMenu.countryCode === 'VE' || currentMenu.showBcvRate === true}
+                      bcvRate={bcvRate}
                     />
                   ))}
                 </div>
@@ -1030,6 +1157,8 @@ interface CategoryEditorProps {
   onToggleItemAvailable: (categoryId: string, itemId: string) => void;
   onUpdateAllergens: (categoryId: string, itemId: string, allergens: string[]) => void;
   onRemoveItem: (categoryId: string, itemId: string) => void;
+  isVenezuela?: boolean;
+  bcvRate?: number | null;
 }
 
 function CategoryEditor({
@@ -1045,6 +1174,8 @@ function CategoryEditor({
   onToggleItemAvailable,
   onUpdateAllergens,
   onRemoveItem,
+  isVenezuela,
+  bcvRate,
 }: CategoryEditorProps) {
   const isAvailable = category.available !== false;
 
@@ -1104,6 +1235,8 @@ function CategoryEditor({
             onToggleAvailable={onToggleItemAvailable}
             onUpdateAllergens={onUpdateAllergens}
             onRemove={onRemoveItem}
+            isVenezuela={isVenezuela}
+            bcvRate={bcvRate}
           />
         ))}
         <button
@@ -1126,6 +1259,8 @@ interface ItemEditorProps {
   onToggleAvailable: (categoryId: string, itemId: string) => void;
   onUpdateAllergens: (categoryId: string, itemId: string, allergens: string[]) => void;
   onRemove: (categoryId: string, itemId: string) => void;
+  isVenezuela?: boolean;
+  bcvRate?: number | null;
 }
 
 function ItemEditor({
@@ -1136,6 +1271,8 @@ function ItemEditor({
   onToggleAvailable,
   onUpdateAllergens,
   onRemove,
+  isVenezuela,
+  bcvRate,
 }: ItemEditorProps) {
   const isAvailable = item.available !== false;
 
@@ -1170,7 +1307,7 @@ function ItemEditor({
 
         <div>
           <label className="mb-2 block text-xs font-bold text-[var(--text-secondary)] dark:text-slate-400" htmlFor={`item-price-${item.id}`}>
-            Precio (€)
+            {isVenezuela ? 'Precio ($)' : 'Precio (€)'}
           </label>
           <input
             id={`item-price-${item.id}`}
@@ -1181,6 +1318,11 @@ function ItemEditor({
             className="input !min-h-10 !py-2 text-center text-sm font-bold dark:!bg-slate-900 dark:!border-slate-700 dark:!text-white"
             placeholder="0,00"
           />
+          {isVenezuela && bcvRate && Number(item.price.replace(',', '.')) > 0 && (
+            <p className="mt-1 text-[10px] font-semibold text-center text-amber-600 dark:text-amber-400">
+              ≈ {(Number(item.price.replace(',', '.')) * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.
+            </p>
+          )}
         </div>
 
         <div className="flex items-end">
