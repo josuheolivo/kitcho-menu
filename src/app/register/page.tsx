@@ -20,6 +20,28 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
+    // Validación de seguridad de contraseña (CWE-521)
+    if (password.length < 10) {
+      setError('La contraseña debe tener al menos 10 caracteres.');
+      setLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('La contraseña debe incluir al menos una letra mayúscula.');
+      setLoading(false);
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('La contraseña debe incluir al menos un número.');
+      setLoading(false);
+      return;
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      setError('La contraseña debe incluir al menos un símbolo o carácter especial (ej. !@#$%^&*).');
+      setLoading(false);
+      return;
+    }
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -131,9 +153,9 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="input"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mín. 10 caract. (Mayúscula, número, símbolo)"
                 autoComplete="new-password"
-                minLength={6}
+                minLength={10}
                 required
               />
             </div>

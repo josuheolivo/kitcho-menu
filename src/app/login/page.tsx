@@ -13,17 +13,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
 
   const handleEmailLogin = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (lockoutSeconds > 0) return;
+
     setLoading(true);
     setError(null);
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
     if (loginError) {
-      if (loginError.message.includes('Email not confirmed')) {
+      const nextAttempts = failedAttempts + 1;
+      setFailedAttempts(nextAttempts);
+
+      if (nextAttempts >= 5) {
+        setLockoutSeconds(60);
+        setError('Demasiados intentos fallidos. Por razones de seguridad, espera 60 segundos antes de volver a intentarlo.');
+        const interval = setInterval(() => {
+          setLockoutSeconds((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              setFailedAttempts(0);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else if (loginError.message.includes('Email not confirmed')) {
         setError('Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada o spam.');
       } else if (loginError.message.includes('Invalid login credentials')) {
-        setError('Correo electrónico o contraseña incorrectos.');
+        setError(`Correo electrónico o contraseña incorrectos. (Intento ${nextAttempts}/5)`);
       } else {
         setError(loginError.message);
       }
@@ -105,8 +125,8 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <button type="submit" disabled={loading} className="btn btn-primary btn-lg w-full">
-              {loading ? 'Entrando…' : <>Entrar al panel <ArrowUpRightIcon /></>}
+            <button type="submit" disabled={loading || lockoutSeconds > 0} className="btn btn-primary btn-lg w-full disabled:opacity-50">
+              {lockoutSeconds > 0 ? `Esperar ${lockoutSeconds}s (Bloqueo de seguridad)` : loading ? 'Entrando…' : <>Entrar al panel <ArrowUpRightIcon /></>}
             </button>
           </form>
 

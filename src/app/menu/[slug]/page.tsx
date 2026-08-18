@@ -1,8 +1,8 @@
+import { notFound } from 'next/navigation';
 import { createPublicServerClient } from '@/lib/supabase';
 import { MenuData, EMPTY_MENU } from '@/lib/types';
 import { isTrialActive } from '@/lib/trial';
 import MenuPublic from '@/components/MenuPublic';
-import { SparkIcon } from '@/components/Icons';
 import { Metadata } from 'next';
 
 interface PageProps {
@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!restaurant) {
     return {
       title: 'Menú no encontrado — Kitcho Menu',
+      robots: { index: false, follow: false },
     };
   }
 
@@ -29,9 +30,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${name} — Menú Digital`,
     description: `Consulta la carta y platos de ${name} online en Kitcho Menu.`,
+    alternates: {
+      canonical: `https://kitcho-menu.vercel.app/menu/${slug}`,
+    },
     openGraph: {
       title: `${name} — Menú Digital`,
       description: `Consulta la carta y platos de ${name} online en Kitcho Menu.`,
+      url: `https://kitcho-menu.vercel.app/menu/${slug}`,
       images: restaurant.logo_url ? [{ url: restaurant.logo_url }] : [],
     },
   };
@@ -48,19 +53,7 @@ export default async function PublicMenuPage({ params }: PageProps) {
     .single();
 
   if (!restaurant) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[#f7f7f4] px-5">
-        <div className="text-center animate-fade-in max-w-md card p-8">
-          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--kitcho-orange)] text-white">
-            <SparkIcon className="h-6 w-6" />
-          </span>
-          <h1 className="mt-6 text-2xl font-bold text-[var(--kitcho-charcoal)]">Restaurante no encontrado</h1>
-          <p className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed">
-            No hemos podido encontrar ningún menú asociado a la dirección consultada. Por favor, comprueba el enlace o el código QR.
-          </p>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   const restaurantName = restaurant.name || 'Restaurante';
